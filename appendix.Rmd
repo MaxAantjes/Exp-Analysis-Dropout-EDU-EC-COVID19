@@ -122,6 +122,11 @@ tdf1 <- tdf %>%
                      names_to = "province")
 ```
 
+```{r}
+df4 <- df3 %>%
+        merge(tdf1)
+```
+
 
 ```{r}
 df1 <- df %>%
