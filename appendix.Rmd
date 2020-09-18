@@ -79,30 +79,37 @@ tdf <- read.mult.xlsx(url, sheets, years)
 
 # Data Cleaning
 ## Year on Year data of start-of-school-year Matriculations
-
 ```{r}
 ## Merge data 
 df1 <- rbind(df, sdf)
 ```
 
 ```{r}
-## Select data of interest
-pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
-df2 <- df1 %>%
-        mutate(province = tolower(rep_sp_char(province))) %>%
-        filter(province %in% pvint)
-```
-
-```{r}
 ## Create a time series data frame
-df3 <- df2 %>%
+df2 <- df1 %>%
         mutate(schoolyear = as.Date(paste0(
                 str_extract(schoolyear, "^[0-9]{4}"), 
                 "-09-01"), format = "%Y-%m-%d"))
+        
 ```
 
-## Population projections by year
+```{r}
+## Select data of interest
+pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
+dftype <- df2 %>%
+        mutate(province = tolower(rep_sp_char(province))) %>%
+        filter(province %in% pvint) 
 
+## Make data frame with total amount of students
+dftot <- dftype %>%
+          group_by(province, schoolyear) %>%
+          summarise(no.students = sum(no.students)) %>%
+          ungroup()
+```
+
+
+
+## Population projections by year
 ```{r}
 ## Clean column names
 names(tdf) <- tolower(rep_sp_char(names(tdf)))
@@ -119,14 +126,19 @@ tdf1 <- tdf %>%
         summarise_at(vars(chimborazo:tungurahua), sum) %>%
         pivot_longer(cols = chimborazo:tungurahua, 
                      values_to = "est.schoolgoing.pop", 
-                     names_to = "province")
+                     names_to = "province") %>%
+        ungroup
 ```
 
 ```{r}
-df4 <- df3 %>%
+df4 <- dftot%>%
         merge(tdf1)
 ```
 
+## Exploratory Data analysis
+```{r}
+
+```
 
 ```{r}
 df1 <- df %>%
