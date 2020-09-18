@@ -1,0 +1,115 @@
+---
+title: "Appendix"
+author: "Max Aantjes"
+date: "15/09/2020"
+output:
+  github_document:
+    toc: true
+    toc_depth: 2
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+The following sections contain all computations for the creation of the exploratory data results summarised in the brief paper. Computations are accompanied by references and justifications to clarify any choices made. Through *code book tables*, explicit references are also made to the survey questions which responses were used in the analysis. 
+
+# R Packages
+The following R packages are used in the subsequent code sections. 
+```{r, message = FALSE}
+library(openxlsx)
+library(stringr)
+library(tidyverse)
+library(xts)
+```
+ 
+```{r}
+rep_sp_char <- function(x){
+        sp_char <- c("á", "é", "í", "ó", "ñ")
+        rep <- c("a", "e", "i", "o", "n")
+        for(i in 1:length(rep)){
+                x <- gsub(sp_char[i], rep[i], x)}
+        return(x)}
+```
+
+```{r echo = TRUE, results = 'hide', message = FALSE}
+## Download Data
+link <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15713"
+df <- read.xlsx(link,  sheet = "Registros Administrativos", startRow = 13)
+names(df)[2] <- "duplicate" #Rename duplicated column to ensure tidyverse works
+names(df) <- tolower(rep_sp_char(names(df)))
+
+sdf <- read.csv("dfzone3.csv")
+```
+
+```{r}
+df1 <- df %>%
+        select("sum.students" = 'total.estudiantes.(inicial.a.3ro..de.bachillerato)', 
+               "sum.teachers" ="total.docentes", 
+               "school.name" = nombre.institucion, 
+               "area" = zona.inec, "finance.type" = sostenimiento, canton, 
+               "province" = provincia, "zone" = zona, 
+               "education.level" = nivel.educacion,
+               "region" = regimen.escolar, modallidad) %>%
+        mutate(finance.type = factor(tolower(finance.type))) %>%
+        mutate(area = factor(str_remove(area, "INEC"))) %>%
+        mutate(canton = factor(tolower(rep_sp_char(canton)))) %>%
+        mutate(province = factor(tolower(rep_sp_char(province))))
+
+sdf1 <- sdf %>%
+        pivot_longer(cols = c(fiscal, fiscomisional, particular, municipal),
+                     values_to = "sum.students", names_to = "finance.type") 
+```
+
+```{r}
+df2 <- df1 %>%
+        group_by(finance.type) %>%
+        summarise(sum(sum.students))
+sum(df1$sum.students)
+```
+
+
+```{r}
+df2 <- df1 %>%
+        filter(zone == "ZONA 3") %>%
+        filter(finance.type %in% c("fiscal", "particular"))
+
+sdf2 <- sdf1 %>%
+        filter(finance.type %in% c("fiscal", "particular"))
+
+## Calculate Statistics
+df3 <- df2 %>%
+        group_by(province, finance.type) %>%
+        summarise(sum.students = sum(sum.students))
+
+## Join the two tables
+df4 <- df3 %>%
+        full_join(sdf2, by = c("province", "finance.type")) %>%
+        rename(y1 = 3, y2 = 4) %>%
+        pivot_longer(cols = c(y1, y2), values_to = "sum.students",
+                     names_to = "schoolyear")
+
+## Calculate change
+df5 <- df4 %>%
+        pivot_wider(values_from = sum.students, names_from = schoolyear) %>%
+        mutate(change = (y2-y1))
+
+## Plot
+p <- ggplot(data = df5, aes(y = change, 
+                            x = province, fill = finance.type))
+p1 <- p + geom_bar(stat = "identity", position = "dodge")
+p2 <- p1 + theme_bw() +
+        theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+p3 <- p2 + labs(y = "Change in the number of Students (Absolute)",
+                x = "Province",
+                title = "Figure 1: The Change in Primary and Secondary\nEducation Enrolment between 2019 and 2020 in Zone 3",
+                caption = "Source: Data from INEC (AMIE) and MINEDUC\nData Summary by author (Max Aantjes)")
+p4 <- p3 + scale_fill_discrete(name = "School Type", labels = c("Public",
+                                          "Private"))
+p4
+
+
+```
+
