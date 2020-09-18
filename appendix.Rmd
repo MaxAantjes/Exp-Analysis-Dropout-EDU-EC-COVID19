@@ -34,13 +34,24 @@ rep_sp_char <- function(x){
         return(x)}
 ```
 
+# Downloading the Data
+## Year on Year data of start-of-school-year Matriculations 
+These data sets are updated every year, so it possible that links stop working. You can download the relevant data sets (tabulados por sostenimiento) from this website: https://educacion.gob.ec/indice-de-tabulados/
 ```{r echo = TRUE, results = 'hide', message = FALSE}
 ## Download Data
-link <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15713"
-df <- read.xlsx(link,  sheet = "Registros Administrativos", startRow = 13)
-names(df)[2] <- "duplicate" #Rename duplicated column to ensure tidyverse works
-names(df) <- tolower(rep_sp_char(names(df)))
+links <- list("https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15555", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15556", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15557", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15558")
+dfl <- lapply(links, read.xlsx, sheet = 5, startRow = 12)
+addcol <- function(x){
+        y <- c("public", "private", "municipality", "mixed")
+        for(i in 1:length(x)){x[[i]]$type <- y[i]}
+        return(x)}
+dfl1 <- addcol(dfl)
+dfl2 <- lapply(dfl1, pivot_longer, cols = "2009-2010.Inicio":"2019-2020.Inicio",
+               names_to = "schoolyear", values_to = "no.students")
+dfl3 <- do.call(rbind, dfl2)
+```
 
+```{r}
 sdf <- read.csv("dfzone3.csv")
 ```
 
