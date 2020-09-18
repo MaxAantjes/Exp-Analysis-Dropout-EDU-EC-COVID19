@@ -23,6 +23,7 @@ library(openxlsx)
 library(stringr)
 library(tidyverse)
 library(xts)
+library(foreign)
 ```
  
 ```{r}
@@ -37,6 +38,7 @@ rep_sp_char <- function(x){
 # Downloading the Data
 ## Year on Year data of start-of-school-year Matriculations 
 These data sets are updated every year, so it possible that links stop working. You can download the relevant data sets (tabulados por sostenimiento) from this website: https://educacion.gob.ec/indice-de-tabulados/
+
 ```{r echo = TRUE, results = 'hide', message = FALSE}
 ## Download Data
 links <- list("https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15555", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15556", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15557", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15558")
@@ -59,6 +61,26 @@ sdf <- read.csv("dfzone3.csv") %>%
                      values_to = "no.students")
 ```
 
+```{r}
+url <- "https://www.ecuadorencifras.gob.ec/documentos/web-inec/Poblacion_y_Demografia/Proyecciones_Poblacionales/PROYECCION_POR_EDADES_PROVINCIAS_2010-2020_Y_NACIONAL_2010-2020.xlsx"
+sheets <- 2:12
+years <- 2010:2020
+read.mult.xlsx <- function(x, y, z){
+  q <- list()
+  for(i in 1:length(y)){
+        q[[i]] <- read.xlsx(x, sheet = y[i], startRow = 8)
+        q[[i]]$year = z[i]}
+  q <- do.call(rbind, q)
+  return(q)}
+tdf <- read.mult.xlsx(url, sheets, years)
+```
+
+
+```{r}
+tdf <- read.spss("ENV_2015.sav", to.data.frame=TRUE)
+```
+
+
 
 ```{r}
 ## Merge data
@@ -80,6 +102,12 @@ df3 <- df2 %>%
                 str_extract(schoolyear, "^[0-9]{4}"), 
                 "-09-01"), format = "%Y-%m-%d"))
 ```
+
+```{r}
+df4 <- df3 %>%
+        
+```
+
 
 
 ```{r}
