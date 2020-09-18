@@ -48,7 +48,8 @@ addcol <- function(x){
 dfl1 <- addcol(dfl)
 dfl2 <- lapply(dfl1, pivot_longer, cols = "2009-2010.Inicio":"2019-2020.Inicio",
                names_to = "schoolyear", values_to = "no.students")
-df <- do.call(rbind, dfl2)
+df <- do.call(rbind, dfl2) %>%
+        rename("province" = Provincia)
 ```
 
 ```{r}
@@ -56,6 +57,20 @@ sdf <- read.csv("dfzone3.csv") %>%
         mutate(schoolyear = "2020-2021.Inicio") %>%
         pivot_longer(cols = "fiscal":"municipal", names_to = "type",
                      values_to = "no.students")
+```
+
+
+```{r}
+## Merge data
+df1 <- rbind(df, sdf)
+```
+
+```{r}
+## Select data of interest
+df2 <- df1 %>%
+        mutate(province = tolower(rep_sp_char(province))) %>%
+        filter(province %in% c("chimborazo", "cotopaxi", 
+                               "pastaza", "tungurahua"))
 ```
 
 
