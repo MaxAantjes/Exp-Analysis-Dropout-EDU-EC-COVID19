@@ -73,6 +73,14 @@ df2 <- df1 %>%
                                "pastaza", "tungurahua"))
 ```
 
+```{r}
+## Create a time series data frame
+df3 <- df2 %>%
+        mutate(schoolyear = as.Date(paste0(
+                str_extract(schoolyear, "^[0-9]{4}"), 
+                "-09-01"), format = "%Y-%m-%d"))
+```
+
 
 ```{r}
 df1 <- df %>%
