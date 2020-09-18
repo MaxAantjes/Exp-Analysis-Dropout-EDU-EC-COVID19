@@ -61,6 +61,8 @@ sdf <- read.csv("dfzone3.csv") %>%
                      values_to = "no.students")
 ```
 
+## Population projections by year
+https://www.ecuadorencifras.gob.ec/proyecciones-poblacionales/
 ```{r}
 url <- "https://www.ecuadorencifras.gob.ec/documentos/web-inec/Poblacion_y_Demografia/Proyecciones_Poblacionales/PROYECCION_POR_EDADES_PROVINCIAS_2010-2020_Y_NACIONAL_2010-2020.xlsx"
 sheets <- 2:12
@@ -75,24 +77,20 @@ read.mult.xlsx <- function(x, y, z){
 tdf <- read.mult.xlsx(url, sheets, years)
 ```
 
+# Data Cleaning
+## Year on Year data of start-of-school-year Matriculations
 
 ```{r}
-tdf <- read.spss("ENV_2015.sav", to.data.frame=TRUE)
-```
-
-
-
-```{r}
-## Merge data
+## Merge data 
 df1 <- rbind(df, sdf)
 ```
 
 ```{r}
 ## Select data of interest
+pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
 df2 <- df1 %>%
         mutate(province = tolower(rep_sp_char(province))) %>%
-        filter(province %in% c("chimborazo", "cotopaxi", 
-                               "pastaza", "tungurahua"))
+        filter(province %in% pvint)
 ```
 
 ```{r}
@@ -103,11 +101,26 @@ df3 <- df2 %>%
                 "-09-01"), format = "%Y-%m-%d"))
 ```
 
-```{r}
-df4 <- df3 %>%
-        
-```
+## Population projections by year
 
+```{r}
+## Clean column names
+names(tdf) <- tolower(rep_sp_char(names(tdf)))
+
+## Select data of interest
+tdf1 <- tdf %>%
+        mutate(age = gsub(" ", "", x1)) %>%
+        filter(age %in% c("5-9", "10-14", "15-19")) %>%
+        mutate(schoolyear = as.Date(
+                paste0(year, "-09-01"), format = "%Y-%m-%d")) %>%
+        select(schoolyear, age, "chimborazo" = 'chimbo-razo', cotopaxi, 
+               pastaza, "tungurahua" = 'tungu-rahua') %>%
+        group_by(schoolyear) %>%
+        summarise_at(vars(chimborazo:tungurahua), sum) %>%
+        pivot_longer(cols = chimborazo:tungurahua, 
+                     values_to = "est.schoolgoing.pop", 
+                     names_to = "province")
+```
 
 
 ```{r}
