@@ -108,38 +108,32 @@ names(fdf)[2] <- "duplicate" #Rename duplicated column to ensure tidyverse works
 names(fdf) <- tolower(rep_sp_char(names(fdf)))
 ```
 
-
 # Data Cleaning
 ## Year on Year data of start-of-school-year Matriculations
+The following code merges the data from the AMIE summarised data (2009-2019) and the government announcement (2020). It then transforms the data set into a time series data frame, calculates the total amount of students per year and selects the four provinces of interest (Chimborazo, Cotopaxi, Pastaza and Tungurahua). It also clarifies the names of the type of education.  
 ```{r}
-## Merge data 
-df1 <- rbind(df, sdf)
-```
-
-```{r}
-## Create a time series data frame
-df2 <- df1 %>%
+pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
+df1 <- rbind(df, sdf) %>%
         mutate(schoolyear = as.Date(paste0(
                 str_extract(schoolyear, "^[0-9]{4}"), 
-                "-09-01"), format = "%Y-%m-%d"))
-        
+                "-09-01"), format = "%Y-%m-%d"))  %>%
+        mutate(province = factor(tolower(rep_sp_char(province)))) %>%
+        filter(province %in% pvint) %>%
+        mutate(type = factor(type, levels = c("fiscal", "particular",
+                                              "municipal", "fiscomisional"),
+                             labels = c("public", "private", "municipal",
+                                        "mixed")))
+head(df1)
 ```
+This results in the following codebook: 
+```{r, echo = FALSE}
+colnames <- c("province", "type", "schoolyear", "no.students")
+explanation <- c("Ecuadorian province name.", "Indicates what finance type the group of education institutions belongs to.", "Approximate Date of School Year Start", "Number of students enrolled at the start of the school year")
+values <- c("factor of 4 levels: chimborazo, ...", "factor of 4 levels: public, ...", "Date", "Numeric")
+table <- data.frame(cbind(colnames, explanation, values))
+kable(table, caption = "Code Book Table 1")
 
-```{r}
-## Select data of interest
-#pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
-dftype <- df2 %>%
-        mutate(province = tolower(rep_sp_char(province)))# %>%
-        #filter(province %in% pvint) 
-
-## Make data frame with total amount of students
-dftot <- dftype %>%
-          group_by(province, schoolyear) %>%
-          summarise(matriculated.students = sum(no.students)) %>%
-          ungroup()
 ```
-
-
 
 ## Population projections by year
 ```{r}
