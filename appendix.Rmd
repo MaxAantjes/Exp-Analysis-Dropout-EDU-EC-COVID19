@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Introduction
-The following sections contain all computations for the creation of the exploratory data results summarised in the brief paper. Computations are accompanied by references and justifications to clarify any choices made. Through *code book tables*, explicit references are also made to the survey questions which responses were used in the analysis. 
+The following sections contain all computations for the creation of the exploratory data results summarised in the brief paper. Computations are accompanied by references and justifications to clarify any choices made. 
 
 # R Packages
 The following R packages are used in the subsequent code sections. 
@@ -25,7 +25,7 @@ library(tidyverse)
 library(xts)
 library(foreign)
 ```
- 
+The following code loads a useful function to account for special characters.
 ```{r}
 rep_sp_char <- function(x){
         sp_char <- c("á", "é", "í", "ó", "ñ")
@@ -35,10 +35,15 @@ rep_sp_char <- function(x){
         return(x)}
 ```
 
-# Downloading the Data
-## Year on Year data of start-of-school-year Matriculations 
-These data sets are updated every year, so it possible that links stop working. You can download the relevant data sets (tabulados por sostenimiento) from this website: https://educacion.gob.ec/indice-de-tabulados/
+# Data Extraction
+## Start-of-school-year Matriculations (2009-2019)
+### Data Source and Relevance
+The data used is summarised matriculation data calculated from the AMIE survey conducted by INEC. This is an annual survey which collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/)
 
+These data sets are updated every year, so it possible that links stop working. The relevant data sets (tabulados por sostenimiento) can be downloaded from this website: https://educacion.gob.ec/indice-de-tabulados/.
+
+### Download
+The following code downloads the data. 
 ```{r echo = TRUE, results = 'hide', message = FALSE}
 ## Download Data
 links <- list("https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15555", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15556", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15557", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15558")
@@ -53,6 +58,8 @@ dfl2 <- lapply(dfl1, pivot_longer, cols = "2009-2010.Inicio":"2019-2020.Inicio",
 df <- do.call(rbind, dfl2) %>%
         rename("province" = Provincia)
 ```
+
+## Start-of-school-year Matriculations (2020)
 
 ```{r}
 sdf <- read.csv("dfzone3.csv") %>%
@@ -77,6 +84,8 @@ read.mult.xlsx <- function(x, y, z){
 tdf <- read.mult.xlsx(url, sheets, years)
 ```
 
+## 
+
 # Data Cleaning
 ## Year on Year data of start-of-school-year Matriculations
 ```{r}
@@ -95,15 +104,15 @@ df2 <- df1 %>%
 
 ```{r}
 ## Select data of interest
-pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
+#pvint <- c("chimborazo", "cotopaxi", "pastaza", "tungurahua")
 dftype <- df2 %>%
-        mutate(province = tolower(rep_sp_char(province))) %>%
-        filter(province %in% pvint) 
+        mutate(province = tolower(rep_sp_char(province)))# %>%
+        #filter(province %in% pvint) 
 
 ## Make data frame with total amount of students
 dftot <- dftype %>%
           group_by(province, schoolyear) %>%
-          summarise(no.students = sum(no.students)) %>%
+          summarise(matriculated.students = sum(no.students)) %>%
           ungroup()
 ```
 
@@ -121,23 +130,54 @@ tdf1 <- tdf %>%
         mutate(schoolyear = as.Date(
                 paste0(year, "-09-01"), format = "%Y-%m-%d")) %>%
         select(schoolyear, age, "chimborazo" = 'chimbo-razo', cotopaxi, 
-               pastaza, "tungurahua" = 'tungu-rahua') %>%
+               pastaza, "total nacional" = "total.pais",
+               "tungurahua" = 'tungu-rahua', 
+               ) %>%
         group_by(schoolyear) %>%
         summarise_at(vars(chimborazo:tungurahua), sum) %>%
         pivot_longer(cols = chimborazo:tungurahua, 
-                     values_to = "est.schoolgoing.pop", 
+                     values_to = "estimated.5-19.yo", 
                      names_to = "province") %>%
-        ungroup
+        ungroup()
 ```
 
 ```{r}
-df4 <- dftot%>%
-        merge(tdf1)
+dftot1 <- dftot%>%
+        merge(tdf1) %>%
+        pivot_longer(cols = 3:4, values_to = "population.size",
+                     "population.type")
 ```
 
 ## Exploratory Data analysis
+# Country-Level
 ```{r}
+dftot2 <- dftot1 %>%
+            filter(province == "total nacional")
+p <- ggplot(dat = dftot2, aes(y = population.size, x = schoolyear,
+                              col = population.type))
+p1 <- p + labs(x = "school year", "population size",
+               title = "Number of students enrolled at start of school year\nvs. estimated population aged 5-19 y/o")
+p2 <- p1 + geom_point() + geom_line()
+p3 <- p2 + theme_bw()
+p3
+```
 
+```{r}
+dftot2 <- dftot1 %>%
+            filter(province != "total nacional") %>%
+            mutate(population.type = ifelse(
+            population.type == "matriculated.students", 
+            "Matriculated Students", "5-19 Year-Olds (Estimate)"))
+p <- ggplot(dat = dftot2, aes(y = population.size/1000, x = schoolyear,
+                              col = population.type))
+p1 <- p + facet_grid(~province)
+p2 <- p1 + geom_point() + geom_line() + geom_vline(aes(xintercept = as.Date("13-03-2020", format = "%d-%m-%Y"), col = "Start School Lockdown"))
+p3 <- p2 + theme_bw()
+p4 <- p3 + labs(title = "Number of secondary and primary students matriculated\nat the start of school year vs. estimated population\naged 5-19 years old",
+                x = "Year", y = "Population Size (in thousands)") +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+p5 <- p4 + scale_colour_discrete(name = "")
+p5
 ```
 
 ```{r}
@@ -206,6 +246,11 @@ p4 <- p3 + scale_fill_discrete(name = "School Type", labels = c("Public",
                                           "Private"))
 p4
 
+
+```
+
+```{r}
+link <- "https://www.ecuadorencifras.gob.ec//documentos/datos/Poblacion_y_Demografia/nacimientos_defunciones/nacimientos/spss/dbd_nacidos_vivos_spss_2015.zip"
 
 ```
 
