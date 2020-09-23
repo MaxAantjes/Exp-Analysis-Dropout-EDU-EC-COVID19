@@ -125,17 +125,18 @@ df1 <- rbind(df, sdf) %>%
                                         "mixed")))
 head(df1)
 ```
-This results in the following codebook: 
+The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
 colnames <- c("province", "type", "schoolyear", "no.students")
 explanation <- c("Ecuadorian province name.", "Indicates what finance type the group of education institutions belongs to.", "Approximate Date of School Year Start", "Number of students enrolled at the start of the school year")
 values <- c("factor of 4 levels: chimborazo, ...", "factor of 4 levels: public, ...", "Date", "Numeric")
 table <- data.frame(cbind(colnames, explanation, values))
 kable(table, caption = "Code Book Table 1")
-
 ```
 
 ## Population projections by year
+The following code filters the age groups from 5-19 and selects data from the provinces of interest.
+
 ```{r}
 ## Clean column names
 names(tdf) <- tolower(rep_sp_char(names(tdf)))
@@ -156,7 +157,18 @@ tdf1 <- tdf %>%
                      values_to = "estimated.5-19.yo", 
                      names_to = "province") %>%
         ungroup()
+head(tdf1)
 ```
+The following code book explains the different variables in detail:
+```{r}
+colnames <- c("province", "schoolyear", "estimated.5-19.yo")
+explanation <- c("Ecuadorian province name.", "Approximate Date of School Year Start. This is only used to merge the data at a later stage. The population estimates themselves pertain to the whole year", "Extimated population of 5-19 year-olds based on 2010 population projections")
+values <- c("factor of 4 levels: chimborazo, ...", "Date", "Numeric")
+table <- data.frame(cbind(colnames, explanation, values))
+kable(table, caption = "Code Book Table 2")
+```
+
+## Merge the data 
 
 ```{r}
 dftot1 <- dftot%>%
