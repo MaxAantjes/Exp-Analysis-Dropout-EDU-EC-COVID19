@@ -59,8 +59,15 @@ df <- do.call(rbind, dfl2) %>%
         rename("province" = Provincia)
 ```
 
-## Start-of-school-year Matriculations (2020)
+## Start-of-school-year Matriculations Zone 3 (2020)
+### Data Source and Relevance
+This data summarises the matriculation data in four Ecuadorian provinces at the start of the 2020-2021 school year. The data was taken from a news update by the Ecuadorian Ministry of education. I assume this data to be as accurate as the AMIE tabulated data; this is unlikely to hold true, but it's the best public data available. As the small table was presented as an image, I tabulated it myself in excel and uploaded it into the GitHub repository. Both forms of the data are accessed as follows:  
 
+* Download the excel file [here](https://github.com/MaxAantjes/Exp-Analysis-Dropout-EDU-EC-COVID19/blob/master/dfzone3.csv)  
+* Read the news article [here](https://educacion.gob.ec/374-908-estudiantes-inician-un-nuevo-ano-lectivo-en-la-zona-3/)  
+
+### Download
+The following code downloads the data. 
 ```{r}
 sdf <- read.csv("dfzone3.csv") %>%
         mutate(schoolyear = "2020-2021.Inicio") %>%
@@ -69,7 +76,11 @@ sdf <- read.csv("dfzone3.csv") %>%
 ```
 
 ## Population projections by year
-https://www.ecuadorencifras.gob.ec/proyecciones-poblacionales/
+### Data Source and Relevance
+The population projects were calculated by INEC based on the 2010 population census. The methodology and code book is available in the relevant (government repository)[https://www.ecuadorencifras.gob.ec/proyecciones-poblacionales/].
+
+### Download
+The following code downloads the data.
 ```{r}
 url <- "https://www.ecuadorencifras.gob.ec/documentos/web-inec/Poblacion_y_Demografia/Proyecciones_Poblacionales/PROYECCION_POR_EDADES_PROVINCIAS_2010-2020_Y_NACIONAL_2010-2020.xlsx"
 sheets <- 2:12
@@ -84,7 +95,19 @@ read.mult.xlsx <- function(x, y, z){
 tdf <- read.mult.xlsx(url, sheets, years)
 ```
 
-## 
+## AMIE Data (2019)
+### Data Source and Relevance
+The data used is the AMIE survey conducted by INEC (non-summarised). This annual survey collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/)
+
+### Download
+The following code downloads the data.
+```{r}
+link <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15713"
+fdf <- read.xlsx(link,  sheet = "Registros Administrativos", startRow = 13)
+names(fdf)[2] <- "duplicate" #Rename duplicated column to ensure tidyverse works
+names(fdf) <- tolower(rep_sp_char(names(fdf)))
+```
+
 
 # Data Cleaning
 ## Year on Year data of start-of-school-year Matriculations
