@@ -135,7 +135,7 @@ kable(table, caption = "Code Book Table 1")
 ```
 
 ## Population projections by year
-The following code filters the age groups from 5-19 and selects data from the provinces of interest.
+The following code filters the age groups from 5-19 and selects data from the provinces of interest and restructures the data in an interpretable format.
 
 ```{r}
 ## Clean column names
@@ -160,7 +160,7 @@ tdf1 <- tdf %>%
 head(tdf1)
 ```
 The following code book explains the different variables in detail:
-```{r}
+```{r, echo = FALSE}
 colnames <- c("province", "schoolyear", "estimated.5-19.yo")
 explanation <- c("Ecuadorian province name.", "Approximate Date of School Year Start. This is only used to merge the data at a later stage. The population estimates themselves pertain to the whole year", "Extimated population of 5-19 year-olds based on 2010 population projections")
 values <- c("factor of 4 levels: chimborazo, ...", "Date", "Numeric")
@@ -168,36 +168,49 @@ table <- data.frame(cbind(colnames, explanation, values))
 kable(table, caption = "Code Book Table 2")
 ```
 
-## Merge the data 
-
+## AMIE Data (2019)
+The following code selects the columns of interests, translates them and turns them into factors. 
 ```{r}
-dftot1 <- dftot%>%
-        merge(tdf1) %>%
+fdf1 <- fdf %>%
+        select("name" = nombre.institucion, 
+               "area" = zona.inec, "canton" = canton, 
+               "type" = sostenimiento,
+               "tot.teachers" = total.docentes,
+               "tot.students" = 35) %>%
+        mutate(type = factor(tolower(type), levels = c("fiscal", "particular",
+                                              "municipal", "fiscomisional"),
+                             labels = c("public", "private", "municipal",
+                                        "mixed"))) %>%
+        mutate(area = factor(str_remove(area, "INEC"), 
+               levels = c("Rural", "Urbana"), labels = c("rural", "urban"))) %>%
+        mutate(canton = factor(canton)) 
+```
+The following code book explains the different variables in detail:
+```{r, echo = FALSE}
+colnames <- c("name", "area", "type", "canton", "tot.teachers", "estimated.5-19.yo")
+explanation <- c("Institution name", "Indicates whether the institution is in a rural or urban area.", "Indicates how the institution is financed", "Ecuadorian canton name.", "Total number of teachers at the institution", "Total number of students at the institution")
+values <- c("ID as characters", "factor of 2 levels: rural, urban", "factor of 4 levels: public, ...", "factor of 222 levels: LOJA, ...", "Numeric", "Numeric")
+table <- data.frame(cbind(colnames, explanation, values))
+kable(table, caption = "Code Book Table 3")
+```
+
+# Results
+## Drop in Primary and Secondary Education Enrolment
+The following code merges the ```df1``` and ```tdf1``` data frames, as well as prepares them for data visualisation.
+```{r}
+df2 <- df1 %>%
+        group_by(province, schoolyear) %>%
+        summarise(no.students = sum(no.students)) %>%
+        left_join(tdf1, by = c("province", "schoolyear")) %>%
         pivot_longer(cols = 3:4, values_to = "population.size",
-                     "population.type")
-```
-
-## Exploratory Data analysis
-# Country-Level
-```{r}
-dftot2 <- dftot1 %>%
-            filter(province == "total nacional")
-p <- ggplot(dat = dftot2, aes(y = population.size, x = schoolyear,
-                              col = population.type))
-p1 <- p + labs(x = "school year", "population size",
-               title = "Number of students enrolled at start of school year\nvs. estimated population aged 5-19 y/o")
-p2 <- p1 + geom_point() + geom_line()
-p3 <- p2 + theme_bw()
-p3
-```
-
-```{r}
-dftot2 <- dftot1 %>%
-            filter(province != "total nacional") %>%
+                     "population.type") %>%
             mutate(population.type = ifelse(
-            population.type == "matriculated.students", 
-            "Matriculated Students", "5-19 Year-Olds (Estimate)"))
-p <- ggplot(dat = dftot2, aes(y = population.size/1000, x = schoolyear,
+            population.type == "no.students", 
+            "Matriculated Students", "5-19 Year-Olds (Estimate)")) 
+```
+The following code graphs the data.
+```{r, warning = FALSE}
+p <- ggplot(dat = df2, aes(y = population.size/1000, x = schoolyear,
                               col = population.type))
 p1 <- p + facet_grid(~province)
 p2 <- p1 + geom_point() + geom_line() + geom_vline(aes(xintercept = as.Date("13-03-2020", format = "%d-%m-%Y"), col = "Start School Lockdown"))
