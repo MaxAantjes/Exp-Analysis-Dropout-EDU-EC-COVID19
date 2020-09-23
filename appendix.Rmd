@@ -195,7 +195,7 @@ kable(table, caption = "Code Book Table 3")
 ```
 
 # Results
-## Drop in Primary and Secondary Education Enrolment
+## Drop in Primary and Secondary Education Enrolment viz. Estimated Population
 The following code merges the ```df1``` and ```tdf1``` data frames, as well as prepares them for data visualisation.
 ```{r}
 df2 <- df1 %>%
@@ -221,62 +221,23 @@ p4 <- p3 + labs(title = "Number of secondary and primary students matriculated\n
 p5 <- p4 + scale_colour_discrete(name = "")
 p5
 ```
+## Transition from Private to Public Schools
 
+The following code filters the data for year 2019 and 2020 for public and private institutions. It then calculates the change in student enrolment.
 ```{r}
-df1 <- df %>%
-        select("sum.students" = 'total.estudiantes.(inicial.a.3ro..de.bachillerato)', 
-               "sum.teachers" ="total.docentes", 
-               "school.name" = nombre.institucion, 
-               "area" = zona.inec, "finance.type" = sostenimiento, canton, 
-               "province" = provincia, "zone" = zona, 
-               "education.level" = nivel.educacion,
-               "region" = regimen.escolar, modallidad) %>%
-        mutate(finance.type = factor(tolower(finance.type))) %>%
-        mutate(area = factor(str_remove(area, "INEC"))) %>%
-        mutate(canton = factor(tolower(rep_sp_char(canton)))) %>%
-        mutate(province = factor(tolower(rep_sp_char(province))))
-
-sdf1 <- sdf %>%
-        pivot_longer(cols = c(fiscal, fiscomisional, particular, municipal),
-                     values_to = "sum.students", names_to = "finance.type") 
+df3 <- df1 %>%
+        mutate(schoolyear = str_extract(schoolyear, "^[0-9]{4}")) %>%
+        filter(schoolyear %in% c(2019, 2020)) %>%
+        mutate(schoolyear = ifelse(schoolyear == 2019, "y2019", "y2020")) %>%
+        pivot_wider(values_from = no.students, names_from = schoolyear) %>%
+        mutate(change = (y2020 - y2019)) %>%
+        filter(type %in% c("public", "private"))
 ```
 
+The following code graphs the data. 
 ```{r}
-df2 <- df1 %>%
-        group_by(finance.type) %>%
-        summarise(sum(sum.students))
-sum(df1$sum.students)
-```
-
-
-```{r}
-df2 <- df1 %>%
-        filter(zone == "ZONA 3") %>%
-        filter(finance.type %in% c("fiscal", "particular"))
-
-sdf2 <- sdf1 %>%
-        filter(finance.type %in% c("fiscal", "particular"))
-
-## Calculate Statistics
-df3 <- df2 %>%
-        group_by(province, finance.type) %>%
-        summarise(sum.students = sum(sum.students))
-
-## Join the two tables
-df4 <- df3 %>%
-        full_join(sdf2, by = c("province", "finance.type")) %>%
-        rename(y1 = 3, y2 = 4) %>%
-        pivot_longer(cols = c(y1, y2), values_to = "sum.students",
-                     names_to = "schoolyear")
-
-## Calculate change
-df5 <- df4 %>%
-        pivot_wider(values_from = sum.students, names_from = schoolyear) %>%
-        mutate(change = (y2-y1))
-
-## Plot
-p <- ggplot(data = df5, aes(y = change, 
-                            x = province, fill = finance.type))
+p <- ggplot(data = df3, aes(y = change, 
+                            x = province, fill = type))
 p1 <- p + geom_bar(stat = "identity", position = "dodge")
 p2 <- p1 + theme_bw() +
         theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
@@ -287,12 +248,6 @@ p3 <- p2 + labs(y = "Change in the number of Students (Absolute)",
 p4 <- p3 + scale_fill_discrete(name = "School Type", labels = c("Public",
                                           "Private"))
 p4
-
-
 ```
 
-```{r}
-link <- "https://www.ecuadorencifras.gob.ec//documentos/datos/Poblacion_y_Demografia/nacimientos_defunciones/nacimientos/spss/dbd_nacidos_vivos_spss_2015.zip"
-
-```
-
+## Relationship between Private School Enrolment and Public School Class Sizes
