@@ -47,10 +47,48 @@ These data sets are updated every year, so it possible that links stop working. 
 ## Data Set 1
 The following code downloads the data.
 ```{r}
-link <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15713"
-df <- read.xlsx(link,  sheet = "Registros Administrativos", startRow = 13)
-names(df)[2] <- "duplicate" #Rename duplicated column to ensure tidyverse works
-names(df) <- tolower(rep_sp_char(names(df)))
+y2009s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10555"
+y2010s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10557"
+y2011s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10559"
+y2012s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10561"
+y2013s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=12176"
+y2014s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10567"
+y2015s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10569"
+y2016s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10573"
+y2017s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=12645"
+y2018s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15711"
+y2019s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15713"
+
+l1 <- list(y2009s, y2010s, y2011s, y2012s, y2013s, y2014s, y2015s, y2016s, y2017s)
+
+load.xlsx <- function(x, y, z){
+        y <- read.xlsx(x, sheet = y, startRow = z)
+        return(y)}
+
+dfl1 <- lapply(l1, read.xlsx, sheet = 1, startRow = 11)
+dfl2 <- read.xlsx(y2018s, sheet = 2, startRow = 13)
+dfl3 <- read.xlsx(y2019s,  sheet = "Registros Administrativos", startRow = 13)
+
+dfl1_1 <- do.call(rbind, dfl1)
+
+select_cols <- function(x){
+        names(x) <- tolower(rep_sp_char(names(x)))
+        z <- x %>%
+                select(periodo, total.estudiantes, total.docentes, 
+                       nombre.institucion, zona.inec, sostenimiento, canton)
+        return(z)}
+
+dfl1_2 <- select_cols(dfl1_1)
+dfl2_1 <- select_cols(dfl2)
+
+names(dfl3) <- tolower(rep_sp_char(names(dfl3)))
+names(dfl3)[2] <- "duplicate"
+dfl3_1 <- dfl3 %>%
+                select(-duplicate) %>%
+                select(periodo, "total.estudiantes" = 35, total.docentes, 
+                       nombre.institucion, zona.inec, sostenimiento, canton)
+
+df <- rbind(dfl1_2, dfl2_1, dfl3_1)
 ```
 
 ## Data Set 2
@@ -71,13 +109,13 @@ dfl3 <- do.call(rbind, dfl2) %>%
 ```
 
 # Data Cleaning
-## Creation of a Tidy Data Frame
+## Data Set 1
 The following code selects the columns of interests, translates them and turns them into factors. It should be noted here that column 35 (which is selected) **only** counts students enrolled in primary and secondary education. 
 ```{r}
 df1 <- df %>%
         select("name" = nombre.institucion, 
                "area" = zona.inec, "canton" = canton, 
-               "type" = sostenimiento,
+               "type" = sostenimiento, "year" = periodo,
                "tot.teachers" = total.docentes,
                "tot.students" = 35) %>%
         mutate(type = factor(tolower(type), levels = c("fiscal", "particular",
@@ -97,6 +135,8 @@ values <- c("ID as characters", "factor of 2 levels: rural, urban", "factor of 4
 table <- data.frame(cbind(colnames, explanation, values))
 kable(table, caption = "Code Book data frame DF1")
 ```
+
+## Data Set 2
 
 ## Manipulation of the Data
 The following code creates a data frame which calculates the median student-teacher ratio for each canton (rural and urban area). It then creates a data frame which calculates the percentage of students which are enrolled in private schools per canton (rural and urban area). Finally, the two data frames are merged. 
