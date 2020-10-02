@@ -61,10 +61,6 @@ y2019s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download
 
 l1 <- list(y2009s, y2010s, y2011s, y2012s, y2013s, y2014s, y2015s, y2016s, y2017s)
 
-load.xlsx <- function(x, y, z){
-        y <- read.xlsx(x, sheet = y, startRow = z)
-        return(y)}
-
 dfl1 <- lapply(l1, read.xlsx, sheet = 1, startRow = 11)
 dfl2 <- read.xlsx(y2018s, sheet = 2, startRow = 13)
 dfl3 <- read.xlsx(y2019s,  sheet = "Registros Administrativos", startRow = 13)
@@ -74,7 +70,7 @@ dfl1_1 <- do.call(rbind, dfl1)
 select_cols <- function(x){
         names(x) <- tolower(rep_sp_char(names(x)))
         z <- x %>%
-                select(periodo, total.estudiantes, total.docentes, 
+                select(periodo, total.estudiantes, total.docentes, provincia,
                        nombre.institucion, zona.inec, sostenimiento, canton)
         return(z)}
 
@@ -85,47 +81,32 @@ names(dfl3) <- tolower(rep_sp_char(names(dfl3)))
 names(dfl3)[2] <- "duplicate"
 dfl3_1 <- dfl3 %>%
                 select(-duplicate) %>%
-                select(periodo, "total.estudiantes" = 35, total.docentes, 
+                select(periodo, "total.estudiantes" = 34, total.docentes, provincia,
                        nombre.institucion, zona.inec, sostenimiento, canton)
 
 df <- rbind(dfl1_2, dfl2_1, dfl3_1)
 ```
 
-## Data Set 2
-The following code downloads the data.
-```{r echo = TRUE, results = 'hide', message = FALSE}
-## Download Data
-links <- list("https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15555", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15556", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15557", "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=15558")
-dfl <- lapply(links, read.xlsx, sheet = 5, startRow = 12)
-addcol <- function(x){
-        y <- c("fiscal", "particular", "municipal", "fiscomisional")
-        for(i in 1:length(x)){x[[i]]$type <- y[i]}
-        return(x)}
-dfl1 <- addcol(dfl)
-dfl2 <- lapply(dfl1, pivot_longer, cols = "2009-2010.Inicio":"2019-2020.Inicio",
-               names_to = "schoolyear", values_to = "no.students")
-dfl3 <- do.call(rbind, dfl2) %>%
-        rename("province" = Provincia)
-```
-
 # Data Cleaning
 ## Data Set 1
-The following code selects the columns of interests, translates them and turns them into factors. It should be noted here that column 35 (which is selected) **only** counts students enrolled in primary and secondary education. 
+The following code selects the columns of interests, translates them and turns them into factors. It should be noted here that column 35 (which is selected) **only** counts students enrolled in primary and secondary education. It also transforms the year variable into a date variable.
+
 ```{r}
 df1 <- df %>%
-        select("name" = nombre.institucion, 
-               "area" = zona.inec, "canton" = canton, 
-               "type" = sostenimiento, "year" = periodo,
-               "tot.teachers" = total.docentes,
-               "tot.students" = 35) %>%
-        mutate(type = factor(tolower(type), levels = c("fiscal", "particular",
-                                              "municipal", "fiscomisional"),
-                             labels = c("public", "private", "municipal",
+        select("year" = periodo, "name" = nombre.institucion, "area" = zona.inec, 
+               "province" = provincia, "canton" = canton, "type" = sostenimiento,
+               "tot.teachers" = total.docentes, "tot.students" = total.estudiantes) %>%
+        mutate(type = factor(tolower(type), 
+                             levels = c("fiscal", "particular", "particular laico", 
+                                        "paritcular religioso", "municipal", "fiscomisional"),
+                             labels = c("public", "private", "private", "mixed", "municipal",
                                         "mixed"))) %>%
         mutate(area = factor(str_remove(area, "INEC"), 
                levels = c("Rural", "Urbana"), labels = c("rural", "urban"))) %>%
-        mutate(education.level = factor(education.level)) %>%
-        mutate(canton = factor(canton)) 
+        mutate(canton = factor(tolower(canton))) %>%
+        mutate(province = factor(tolower(province))) %>%
+        mutate(year = str_extract(year, "^[0-9]{4}")) %>%
+        mutate(year = as.Date(paste0(year, "-05-01")))
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
@@ -135,6 +116,12 @@ values <- c("ID as characters", "factor of 2 levels: rural, urban", "factor of 4
 table <- data.frame(cbind(colnames, explanation, values))
 kable(table, caption = "Code Book data frame DF1")
 ```
+Checkign missing data
+```{r}
+summary(factor(df1$year[is.na(df1$type)]))
+df2 <- df1 %>%
+        na.omit()
+```
 
 ## Data Set 2
 
@@ -143,27 +130,39 @@ The following code creates a data frame which calculates the median student-teac
 
 ```{r}
 missing_to_zero <- function(var){return(ifelse(is.na(var), 0, var))}
-not.prim.sec.edu <- c("Alfabetización P.P", "Formación Artística", "Artesanal P.P")
 
-sdf <- df1 %>%
-        filter(type == "public" & education.level !=) %>%
-        mutate(stratio = tot.students/tot.teachers) %>%
-        group_by(canton, area) %>%
-        summarise(stratio = median(stratio))
+st_calc <- function(x) {
+        z <- x %>%
+            filter(tot.students > 10 & tot.teachers > 0) %>%
+            mutate(stratio = tot.students/tot.teachers) %>%
+            summarise(stratio = median(stratio)) %>%
+            mutate(type = paste0(type, "_stratio")) %>%
+            pivot_wider(names_from = type, values_from = stratio)
+        return(z)}
 
-sdf1 <- df1 %>%
-        group_by(type, canton, area) %>%
-        summarise(n = sum(tot.students)) %>%
-        pivot_wider(names_from = type, values_from = n) %>%
-        mutate(public = missing_to_zero(public)) %>%
-        mutate(mixed = missing_to_zero(mixed)) %>%
-        mutate(municipal = missing_to_zero(municipal)) %>%
-        mutate(private = missing_to_zero(private)) %>%
-        mutate(prop1 = ((private)/sum(public, mixed, private, municipal))*100) %>%
-        mutate(prop2 = ((private + mixed)/sum(public, mixed, private, municipal))*100) %>%
-        left_join(sdf, by = c("canton", "area")) %>%
-        select(canton, area, stratio, prop1, prop2) %>%
-        ungroup() 
+dfprov <- st_calc(df2 %>% group_by(year, province, type))
+dfcan <- st_calc(df2 %>% group_by(year, canton, type))
+
+prop_calc <- function(x, y, q){
+        z <- x %>%
+            summarise(n = sum(tot.students)) %>%
+            pivot_wider(names_from = type, values_from = n) %>%
+            mutate(public = missing_to_zero(public)) %>%
+            mutate(mixed = missing_to_zero(mixed)) %>%
+            mutate(municipal = missing_to_zero(municipal)) %>%
+            mutate(private = missing_to_zero(private)) %>%
+            mutate(prop1 = ((private)/sum(public, mixed, private, municipal))*100) %>%
+            mutate(prop2 = ((private + mixed)/sum(public, mixed, private, municipal))*100) %>%
+            left_join(y, by = q) %>%
+            ungroup()
+        return(z)}
+
+dfprov1 <- prop_calc(x = df2 %>% group_by(year, province, type), 
+                     y = dfprov, q = c("year", "province"))
+dfcan1 <- prop_calc(x = df2 %>% group_by(year, canton, type), 
+                     y = dfprov, q = c("year", "canton"))
+
+tsdf <- xts(x = df4[, 2:length(df4)], order.by = df4$year) ## Change this. 
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
