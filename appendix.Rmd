@@ -158,7 +158,7 @@ st_calc <- function(x) {
         return(z)}
 
 dfprov <- st_calc(df3 %>% group_by(year, province, type)) 
-dfcan <- st_calc(df3 %>% group_by(year, canton, type))
+dfcan <- st_calc(df3 %>% group_by(year, canton, type, area))
 
 prop_calc <- function(x, y, q){
         z <- x %>%
@@ -185,8 +185,8 @@ prop_calc <- function(x, y, q){
 
 dfprov1 <- prop_calc(x = df3 %>% group_by(year, province, type), 
                      y = dfprov, q = c("year", "province", "type"))
-dfcan1 <- prop_calc(x = df3 %>% group_by(year, canton, type), 
-                     y = dfcan, q = c("year", "canton", "type"))
+dfcan1 <- prop_calc(x = df3 %>% group_by(year, canton, type, area), 
+                     y = dfcan, q = c("year", "canton", "type", "area"))
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
@@ -200,19 +200,41 @@ kable(table, caption = "Code Book data frame SDF1")
 # Results
 
 ```{r}
-p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = prop.students, col = type))
-p1 <- p + geom_point() + geom_line()
-p1
+ranking <- dfprov1 %>%
+        filter(type == "private" & year == as.Date("2019-05-01")) %>%
+        arrange(-prop.students)
 
-p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
-p1 <- p + geom_point() + geom_line()
-p1
+rprov <- ranking$province[1:4]
+
+p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = prop.students, col = type))
+p1 <- p + facet_grid(~province)
+p2 <- p1 + geom_point() + geom_line()
+p2
+
+p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = med.stratio, col = type))
+p1 <- p + facet_grid(~province)
+p2 <- p1 + geom_point() + geom_line()
+p2
+
+p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = prop.students, col = province))
+p1 <- p + facet_grid(type~.)
+p2 <- p1 + geom_point() + geom_line()
+p2
+
+p <- ggplot(dat = dfprov1 %>% filter(province == "quito"), aes(x = year, y = prop.students, col = province))
+p1 <- p + facet_grid(type~.)
+p2 <- p1 + geom_point() + geom_line()
+p2
 
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students, col = type))
 p1 <- p + geom_point() + geom_line()
 p1
 
-p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers, col = type))
+p <- ggplot(dat = dfprov1 %>% filter(type == "private"), aes(x = year, y = prop.students, col = province))
+p1 <- p + geom_point() + geom_line()
+p1
+
+p <- ggplot(dat = dfprov1 %>% filter(type == "public"), aes(x = year, y = med.stratio, col = province))
 p1 <- p + geom_point() + geom_line()
 p1
 ```
@@ -223,114 +245,100 @@ The following code tests the distribution of the two variables for urban and rur
 dfcan2019 <- dfcan1 %>%
           filter(year == as.Date("2019-05-01")) %>%
           pivot_wider(names_from = type,
-                      values_from = c(prop.students:sum.teachers)) 
+                      values_from = c(prop.students:sum.teachers)) %>%
+          filter(canton != "total")
 ```
 
 
 ```{r}
-par(mfrow = c(3,4))
-hist(sdf1$prop1[sdf1$area == "rural"], 
-     main = "Prop 1. Rural", xlab = "", breaks = 20)
-hist(sdf1$prop1[sdf1$area == "urban"], 
-     main = "Prop 1. Urban", xlab = "", breaks = 20)
-hist(log(sdf1$prop1[sdf1$area == "rural" & sdf1$prop1 > 0]), 
-     main = "Log Prop 1. Rural\n(0's removed)", xlab = "", breaks = 20)
-hist(log(sdf1$prop1[sdf1$area == "urban" & sdf1$prop1 > 0]), 
-     main = "Log Prop 1. Urban\n(0's removed)", xlab = "", breaks = 20)
-hist(sdf1$prop2[sdf1$area == "rural"], 
-     main = "Prop 2. Rural", xlab = "", breaks = 20)
-hist(sdf1$prop2[sdf1$area == "urban"], 
-     main = "Prop 2. Urban", xlab = "", breaks = 20)
-hist(log(sdf1$prop2[sdf1$area == "rural" & sdf1$prop2 > 0]), 
-     main = "Log Prop 2. Rural\n(0's removed)", xlab = "", breaks = 20)
-hist(log(sdf1$prop2[sdf1$area == "urban" & sdf1$prop2 > 0]), 
-     main = "Log Prop 2. Urban\n(0's removed)", xlab = "", breaks = 20)
-hist(sdf1$stratio[sdf1$area == "rural"], 
-     main = "ST Ratio Rural", xlab = "", breaks = 20)
-hist(sdf1$stratio[sdf1$area == "urban"],
-     main = "ST Ratio Urban", xlab = "", breaks = 20)
+par(mfrow = c(2,3))
+hist(dfcan2019$prop.students_private[dfcan2019$area == "rural"], 
+     main = "Prop ST Priv. Rur.", xlab = "", breaks = 40)
+hist(dfcan2019$prop.students_private[dfcan2019$area == "urban"], 
+     main = "Prop ST Priv. Urb.", xlab = "", breaks = 40)
+hist(log(dfcan2019$prop.students_private[dfcan2019$area == "rural" & 
+                                           dfcan2019$prop.students_private > 0]), 
+     main = "Log Prop ST Priv. Rur.", xlab = "", breaks = 20)
+hist(log(dfcan2019$prop.students_private[dfcan2019$area == "urban" & 
+                                           dfcan2019$prop.students_private > 0]), 
+     main = "Log Prop ST Priv. Urb.", xlab = "", breaks = 20)
+hist(dfcan2019$med.stratio_public[dfcan2019$area == "rural"], 
+     main = "Pub. ST Ratio Rur.", xlab = "", breaks = 20)
+hist(dfcan2019$med.stratio_public[dfcan2019$area == "urban"], 
+     main = "Pub. ST Ratio Urb.", xlab = "", breaks = 20)
+```
+
+The following code creates a graph of the relationship of the two variables, as well as its OLS regression with the student-teacher ratio in public schools as the dependent variable and the log of the proportion of private students as the independent variable. 
+
+```{r, echo = FALSE}
+p <- ggplot(dat = dfcan2019 %>% filter(prop.students_public > 0), aes(x = med.stratio_public, y = log(prop.students_public))) + theme_bw() 
+p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
+p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
+p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
+  y = "Proportion of students enrolled\nin public education (log)", 
+  x = "Median Student-Teacher\nratio in private schools",
+  title = "Public Education Attendance and ST Ratio\nin Public Schools", 
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
+p3
+
+p <- ggplot(dat = dfcan2019 %>% filter(prop.students_private > 0), aes(x = med.stratio_public, y = log(prop.students_private))) + theme_bw() 
+p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
+p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
+p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
+  y = "Proportion of students enrolled\nin private education (log)", 
+  x = "Median Student-Teacher\nratio in public schools",
+  title = "Private Education Attendance and ST Ratio\nin Public Schools", 
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
+p3
+
+p <- ggplot(dat = dfcan2019 %>% filter(prop.students_mixed > 0), aes(x = med.stratio_public, y = log(prop.students_mixed))) + theme_bw() 
+p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
+p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
+p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
+  y = "Proportion of students enrolled\nin mixed education (log)", 
+  x = "Median Student-Teacher\nratio in public schools",
+  title = "Mixed Education Attendance and ST Ratio\nin Public Schools", 
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
+p3
+
+p <- ggplot(dat = dfcan2019 %>% filter(prop.students_municipal > 0), aes(x = med.stratio_public, y = log(prop.students_municipal))) + theme_bw()
+p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
+p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
+p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
+  y = "Proportion of students enrolled\nin municipal education (log)", 
+  x = "Median Student-Teacher\nratio in public schools",
+  title = "Municipal Education Attendance and ST Ratio\nin Public Schools", 
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
+p3
+
+p <- ggplot(dat = dfcan2019 %>% filter(prop.students_private > 0 & prop.students_mixed > 0), aes(x = med.stratio_public, y = log(prop.students_private + prop.students_mixed))) + theme_bw()
+p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
+p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
+p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
+  y = "Proportion of students enrolled\nin private and mixed education (log)", 
+  x = "Median Student-Teacher\nratio in public schools",
+  title = "Private and Mixed Education Attendance and ST Ratio\nin Public Schools", 
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
+p3
 ```
 
 ```{r}
-sdfprop1<- sdf1[sdf1$prop1 != 0,]
-sdfprop2 <- sdf1[sdf1$prop2 != 0,]
+dfcan2019_2 <- dfcan2019[dfcan2019$prop.students_private != 0,]
 data.frame(summary(sdf1$area), set = "total")
 data.frame(summary(sdfprop1$area), set = "prop1>0")
 data.frame(summary(sdfprop2$area), set = "prop2>0")
 ```
 
-
-The following code creates a graph of the relationship of the two variables, as well as its OLS regression with the student-teacher ratio in public schools as the dependent variable and the log of the proportion of private students as the independent variable. 
-
-```{r, warning = FALSE}
-p <- ggplot(dat = dfcan2019, aes(y = stratio, x = log(prop1))) + theme_bw() 
-p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
-p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
-p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
-  x = "Proportion of students enrolled\nin private education (log)", 
-  y = "Median Student-Teacher\nratio in public schools",
-  title = "Private Education Attendance and ST Ratio\nin Ecuadorian cantons",
-  subtitle = "Urban and rural areas in each canton were considered separately.\nAdditionally, canton areas with no private schools were removed\nfrom the data set. This means only 42 (of 139) rural canton areas\nand 127 (of 218) canton areas were considered.", 
-  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
-p3
-```
-
-
 ```{r}
-sdfprop1urb <- sdfprop1 %>% filter(area == "urban")
-r <- lm(formula = stratio ~ log(prop1), data = sdfprop1urb)
+dfcan2019urb <- dfcan2019_2 %>% filter(area == "urban")
+r <- lm(formula = med.stratio_public ~ log(prop.students_private), data = dfcan2019urb)
 summary(r)$r.squared
 summary(r)$coefficients
 ```
 
 ```{r}
-sdfprop1rur <- sdfprop1 %>% filter(area == "rural")
-r <- lm(formula = stratio ~ log(prop1), data = sdfprop1rur)
+dfcan2019urb <- dfcan2019_2 %>% filter(area == "urban")
+r <- lm(formula = med.stratio_public ~ log(prop.students_private + prop.students_mixed), data = dfcan2019urb)
 summary(r)$r.squared
 summary(r)$coefficients
-```
-
-```{r, warning = FALSE}
-p <- ggplot(dat = sdf3, aes(y = stratio, x = log(prop2))) + theme_bw() 
-p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
-p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
-p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
-  x = "Proportion of students enrolled\nin private education (log)", 
-  y = "Median Student-Teacher\nratio in public schools",
-  title = "Private and Mixed Education Enrolment and ST Ratio\nin Ecuadorian Cantons",
-  subtitle = "Urban and rural areas in each canton were considered separately.\nAdditionally, canton areas with no private schools were removed\nfrom the data set. This means only 42 (of 139) rural canton areas\nand 127 (of 218) canton areas were considered.", 
-  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
-p3
-```
-
-```{r}
-sdfprop2urb <- sdfprop2 %>% filter(area == "urban")
-r <- lm(formula = stratio ~ log(prop2), data = sdfprop2urb)
-summary(r)$r.squared
-summary(r)$coefficients
-```
-
-```{r}
-sdfprop2rur <- sdfprop2 %>% filter(area == "rural")
-r <- lm(formula = stratio ~ log(prop2), data = sdfprop2rur)
-summary(r)$r.squared
-summary(r)$coefficients
-```
-
-```{r}
-sdfurb <- fdf4 %>% filter(area == "rural")
-r <- lm(formula = stratio ~` log(prop1), data = fdfurb)
-summary(r)
-par(mfrow = c(2,2))
-plot(r)
-library(lmtest)
-bptest(r)
-```
-
-```{r}
-fdfrur <- fdf4 %>% filter(area == "urban")
-r1 <- lm(formula = class.size ~ log(prop), data = fdfurb)
-summary(r1)
-par(mfrow = c(2,2))
-plot(r1)
 ```
