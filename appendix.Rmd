@@ -334,6 +334,7 @@ dfcan2019urb <- dfcan2019_2 %>% filter(area == "urban")
 r <- lm(formula = med.stratio_public ~ log(prop.students_private), data = dfcan2019urb)
 summary(r)$r.squared
 summary(r)$coefficients
+plot(r)
 ```
 
 ```{r}
@@ -341,4 +342,21 @@ dfcan2019urb <- dfcan2019_2 %>% filter(area == "urban")
 r <- lm(formula = med.stratio_public ~ log(prop.students_private + prop.students_mixed), data = dfcan2019urb)
 summary(r)$r.squared
 summary(r)$coefficients
+plot(r)
+```
+
+```{r}
+test <- dfcan2019 %>%
+        mutate(classification = ifelse(prop.students_mixed >= 5 & prop.students_private <= 5, 
+                                       "PMS > 4.9% and PPS < 5%", "PH")) %>%
+        mutate(classification = ifelse(prop.students_mixed <= 5 & prop.students_private >= 5, 
+                                       "PMS < 5% and PPS > 4.9%", classification)) %>%
+        filter(classification != "PH")
+
+p <- ggplot(data = test, aes(x = log(sum.students_public), 
+                                  y = med.stratio_public, col = classification))
+p1 <- p + geom_point(alpha = 1/4) + theme_bw()
+p2 <- p1 + labs(x = "Total Students in Canton (log)", y = "Median Teacher Student\nRatio in Canton",
+                title = "Teacher Student Ratio increases with Total Number of Students")
+p2
 ```
