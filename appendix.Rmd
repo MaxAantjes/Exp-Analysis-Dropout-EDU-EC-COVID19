@@ -136,9 +136,7 @@ st_calc <- function(x) {
         z <- x %>%
             filter(tot.students > 10 & tot.teachers > 0) %>%
             mutate(stratio = tot.students/tot.teachers) %>%
-            summarise(stratio = median(stratio)) %>%
-            mutate(type = paste0(type, "_stratio")) %>%
-            pivot_wider(names_from = type, values_from = stratio)
+            summarise(stratio = median(stratio))
         return(z)}
 
 dfprov <- st_calc(df2 %>% group_by(year, province, type))
@@ -152,23 +150,26 @@ prop_calc <- function(x, y, q){
             mutate(mixed = missing_to_zero(mixed)) %>%
             mutate(municipal = missing_to_zero(municipal)) %>%
             mutate(private = missing_to_zero(private)) %>%
-            mutate(prop1 = ((private)/sum(public, mixed, private, municipal))*100) %>%
-            mutate(prop2 = ((private + mixed)/sum(public, mixed, private, municipal))*100) %>%
-            select(-c(public, mixed, municipal, private)) %>%
+            mutate(total = public + mixed + municipal + private) %>%
+            mutate(public = (public/total)*100) %>%
+            mutate(mixed = (mixed/total)*100) %>%
+            mutate(municipal = (municipal/total)*100) %>%
+            mutate(private = (private/total)*100) %>%
+            pivot_longer(cols = c(public, mixed, municipal, private), 
+                         values_to = "prop.students", names_to = "type") %>%
+            select(-total) %>%
             left_join(y, by = q) %>%
-            mutate(public_stratio = missing_to_zero(public_stratio)) %>%
-            mutate(private_stratio = missing_to_zero(private_stratio)) %>%
-            mutate(mixed_stratio = missing_to_zero(mixed_stratio)) %>%
-            mutate(municipal_stratio = missing_to_zero(municipal_stratio)) %>%
+            mutate(stratio = missing_to_zero(stratio)) %>%
             ungroup()
         return(z)}
 
 dfprov1 <- prop_calc(x = df2 %>% group_by(year, province, type), 
-                     y = dfprov, q = c("year", "province"))
+                     y = dfprov, q = c("year", "province", "type"))
 dfcan1 <- prop_calc(x = df2 %>% group_by(year, canton, type), 
-                     y = dfcan, q = c("year", "canton"))
+                     y = dfcan, q = c("year", "canton", "type"))
 
-dfprov2 <- xts(x = dfprov1[, 2:length(dfprov1)], order.by = dfprov1$year) ## Change this. 
+#dfprov2 <- xts(x = dfprov1[, 2:length(dfprov1)], order.by = dfprov1$year) 
+#dfcan2 <- xts(x = dfcan1[, 2:length(dfcan1)], order.by = dfcan1$year) 
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
@@ -180,6 +181,11 @@ kable(table, caption = "Code Book data frame SDF1")
 ```
 
 # Results
+
+```{r}
+p <- ggplot(x = dfprov1, aes(x = year, y = ))
+```
+
 The following code tests the distribution of the two variables for urban and rural areas. It demonstrates that student-teacher ratios are normally distributed. To the contrary the proportion of private students is not. Nevertheless, by taking the log, we can generate a distribution for both areas which approximates a normal. The log version will therefore be used for the purpose of regression analysis. 
 
 ```{r}
