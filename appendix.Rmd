@@ -132,6 +132,15 @@ The following code creates a data frame which calculates the median student-teac
 ```{r}
 missing_to_zero <- function(var){return(ifelse(is.na(var), 0, var))}
 
+total <- df2 %>%
+            filter(tot.students > 10 & tot.teachers > 0) %>%
+            group_by(year, type) %>%
+            summarise_at(.vars = c("tot.students", "tot.teachers"), .funs = sum) %>%
+            mutate(name = "total") %>%
+            mutate(area = "total") %>%
+            mutate(province = "total") %>%
+            mutate(canton = "total") 
+
 st_calc <- function(x) {
         z <- x %>%
             filter(tot.students > 10 & tot.teachers > 0) %>%
@@ -139,7 +148,7 @@ st_calc <- function(x) {
             summarise(stratio = median(stratio))
         return(z)}
 
-dfprov <- st_calc(df2 %>% group_by(year, province, type))
+dfprov <- st_calc(df3 %>% group_by(year, province, type)) 
 dfcan <- st_calc(df2 %>% group_by(year, canton, type))
 
 prop_calc <- function(x, y, q){
@@ -163,13 +172,10 @@ prop_calc <- function(x, y, q){
             ungroup()
         return(z)}
 
-dfprov1 <- prop_calc(x = df2 %>% group_by(year, province, type), 
+dfprov1 <- prop_calc(x = df3 %>% group_by(year, province, type), 
                      y = dfprov, q = c("year", "province", "type"))
-dfcan1 <- prop_calc(x = df2 %>% group_by(year, canton, type), 
+dfcan1 <- prop_calc(x = df3 %>% group_by(year, canton, type), 
                      y = dfcan, q = c("year", "canton", "type"))
-
-#dfprov2 <- xts(x = dfprov1[, 2:length(dfprov1)], order.by = dfprov1$year) 
-#dfcan2 <- xts(x = dfcan1[, 2:length(dfcan1)], order.by = dfcan1$year) 
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
@@ -183,7 +189,11 @@ kable(table, caption = "Code Book data frame SDF1")
 # Results
 
 ```{r}
-p <- ggplot(x = dfprov1, aes(x = year, y = ))
+p <- ggplot(dat = dfprov1, aes(x = year, y = prop.students, col = type))
+p1 <- p + facet_grid(~province)
+p2 <- p1 + geom_point() + geom_line()
+p2
+
 ```
 
 The following code tests the distribution of the two variables for urban and rural areas. It demonstrates that student-teacher ratios are normally distributed. To the contrary the proportion of private students is not. Nevertheless, by taking the log, we can generate a distribution for both areas which approximates a normal. The log version will therefore be used for the purpose of regression analysis. 
