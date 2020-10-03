@@ -206,37 +206,20 @@ ranking <- dfprov1 %>%
 
 rprov <- ranking$province[1:4]
 
-p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = prop.students, col = type))
-p1 <- p + facet_grid(~province)
-p2 <- p1 + geom_point() + geom_line()
-p2
-
-p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = med.stratio, col = type))
-p1 <- p + facet_grid(~province)
-p2 <- p1 + geom_point() + geom_line()
-p2
-
-p <- ggplot(dat = dfprov1 %>% filter(province %in% rprov), aes(x = year, y = prop.students, col = province))
-p1 <- p + facet_grid(type~.)
-p2 <- p1 + geom_point() + geom_line()
-p2
-
-p <- ggplot(dat = dfprov1 %>% filter(province == "quito"), aes(x = year, y = prop.students, col = province))
-p1 <- p + facet_grid(type~.)
-p2 <- p1 + geom_point() + geom_line()
-p2
-
-p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students, col = type))
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
 p1 <- p + geom_point() + geom_line()
-p1
+p2 <- p1 + theme_bw() + labs(title = "Median Teacher Student Ratio", y = "")
+p2
 
-p <- ggplot(dat = dfprov1 %>% filter(type == "private"), aes(x = year, y = prop.students, col = province))
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students/1000000, col = type))
 p1 <- p + geom_point() + geom_line()
-p1
+p2 <- p1 + theme_bw() + labs(title = "Total Students Enrolled (in millions)", y = "")
+p2
 
-p <- ggplot(dat = dfprov1 %>% filter(type == "public"), aes(x = year, y = med.stratio, col = province))
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers/1000, col = type))
 p1 <- p + geom_point() + geom_line()
-p1
+p2 <- p1 + theme_bw() + labs(title = "Total Teachers Enrolled (in thousands)", y = "")
+p2
 ```
 
 The following code tests the distribution of the two variables for urban and rural areas. It demonstrates that student-teacher ratios are normally distributed. To the contrary the proportion of private students is not. Nevertheless, by taking the log, we can generate a distribution for both areas which approximates a normal. The log version will therefore be used for the purpose of regression analysis. 
