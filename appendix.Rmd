@@ -23,6 +23,7 @@ library(openxlsx)
 library(stringr)
 library(tidyverse)
 library(kableExtra)
+library(xts)
 ```
 The following code loads a useful function to account for special characters.
 ```{r}
@@ -153,16 +154,21 @@ prop_calc <- function(x, y, q){
             mutate(private = missing_to_zero(private)) %>%
             mutate(prop1 = ((private)/sum(public, mixed, private, municipal))*100) %>%
             mutate(prop2 = ((private + mixed)/sum(public, mixed, private, municipal))*100) %>%
+            select(-c(public, mixed, municipal, private)) %>%
             left_join(y, by = q) %>%
+            mutate(public_stratio = missing_to_zero(public_stratio)) %>%
+            mutate(private_stratio = missing_to_zero(private_stratio)) %>%
+            mutate(mixed_stratio = missing_to_zero(mixed_stratio)) %>%
+            mutate(municipal_stratio = missing_to_zero(municipal_stratio)) %>%
             ungroup()
         return(z)}
 
 dfprov1 <- prop_calc(x = df2 %>% group_by(year, province, type), 
                      y = dfprov, q = c("year", "province"))
 dfcan1 <- prop_calc(x = df2 %>% group_by(year, canton, type), 
-                     y = dfprov, q = c("year", "canton"))
+                     y = dfcan, q = c("year", "canton"))
 
-tsdf <- xts(x = df4[, 2:length(df4)], order.by = df4$year) ## Change this. 
+dfprov2 <- xts(x = dfprov1[, 2:length(dfprov1)], order.by = dfprov1$year) ## Change this. 
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
