@@ -72,7 +72,8 @@ select_cols <- function(x){
         names(x) <- tolower(rep_sp_char(names(x)))
         z <- x %>%
                 select(periodo, total.estudiantes, total.docentes, provincia,
-                       nombre.institucion, zona.inec, sostenimiento, canton)
+                       nombre.institucion, zona.inec, sostenimiento, canton,
+                       nivel.educacion)
         return(z)}
 
 dfl1_2 <- select_cols(dfl1_1)
@@ -83,7 +84,8 @@ names(dfl3)[2] <- "duplicate"
 dfl3_1 <- dfl3 %>%
                 select(-duplicate) %>%
                 select(periodo, "total.estudiantes" = 34, total.docentes, provincia,
-                       nombre.institucion, zona.inec, sostenimiento, canton)
+                       nombre.institucion, zona.inec, sostenimiento, canton,
+                       nivel.educacion)
 
 df <- rbind(dfl1_2, dfl2_1, dfl3_1)
 ```
@@ -93,21 +95,25 @@ df <- rbind(dfl1_2, dfl2_1, dfl3_1)
 The following code selects the columns of interests, translates them and turns them into factors. It should be noted here that column 35 (which is selected) **only** counts students enrolled in primary and secondary education. It also transforms the year variable into a date variable.
 
 ```{r}
+not.of.interest <- c("Alfabetización P.P", "Artesanal P.P", "Formación Artística", "No escolarizado", "No registrado")
 df1 <- df %>%
         select("year" = periodo, "name" = nombre.institucion, "area" = zona.inec, 
                "province" = provincia, "canton" = canton, "type" = sostenimiento,
-               "tot.teachers" = total.docentes, "tot.students" = total.estudiantes) %>%
-        mutate(type = factor(tolower(type), 
-                             levels = c("fiscal", "particular", "particular laico", 
-                                        "paritcular religioso", "municipal", "fiscomisional"),
-                             labels = c("public", "private", "private", "mixed", "municipal",
+               "tot.teachers" = total.docentes, "tot.students" = total.estudiantes,
+               nivel.educacion) %>%
+        mutate(type = factor(tolower(gsub(" ", "", type)), 
+                             levels = c("fiscal", "particular", "particularlaico", 
+                                        "particularreligioso", "municipal", "fiscomisional"),
+                             labels = c("public", "private", "private", "private", "municipal",
                                         "mixed"))) %>%
         mutate(area = factor(str_remove(area, "INEC"), 
                levels = c("Rural", "Urbana"), labels = c("rural", "urban"))) %>%
         mutate(canton = factor(tolower(canton))) %>%
         mutate(province = factor(tolower(province))) %>%
         mutate(year = str_extract(year, "^[0-9]{4}")) %>%
-        mutate(year = as.Date(paste0(year, "-05-01")))
+        mutate(year = as.Date(paste0(year, "-05-01"))) %>%
+        filter(!nivel.educacion %in% not.of.interest) %>%
+        select(-nivel.educacion)
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
@@ -120,8 +126,7 @@ kable(table, caption = "Code Book data frame DF1")
 Checkign missing data
 ```{r}
 summary(factor(df1$year[is.na(df1$type)]))
-df2 <- df1 %>%
-        na.omit()
+df2 <- df1
 ```
 
 ## Data Set 2
@@ -141,15 +146,19 @@ total <- df2 %>%
             mutate(province = "total") %>%
             mutate(canton = "total") 
 
+df3 <- rbind(df2, total)
+
 st_calc <- function(x) {
         z <- x %>%
             filter(tot.students > 10 & tot.teachers > 0) %>%
             mutate(stratio = tot.students/tot.teachers) %>%
-            summarise(stratio = median(stratio))
+            summarise(med.stratio = median(stratio), 
+                         sum.students = sum(tot.students),
+                         sum.teachers = sum(tot.teachers))
         return(z)}
 
 dfprov <- st_calc(df3 %>% group_by(year, province, type)) 
-dfcan <- st_calc(df2 %>% group_by(year, canton, type))
+dfcan <- st_calc(df3 %>% group_by(year, canton, type))
 
 prop_calc <- function(x, y, q){
         z <- x %>%
@@ -168,7 +177,9 @@ prop_calc <- function(x, y, q){
                          values_to = "prop.students", names_to = "type") %>%
             select(-total) %>%
             left_join(y, by = q) %>%
-            mutate(stratio = missing_to_zero(stratio)) %>%
+            mutate(med.stratio = missing_to_zero(med.stratio)) %>%
+            mutate(sum.students = missing_to_zero(sum.students)) %>%
+            mutate(sum.teachers = missing_to_zero(sum.teachers)) %>%
             ungroup()
         return(z)}
 
@@ -189,14 +200,32 @@ kable(table, caption = "Code Book data frame SDF1")
 # Results
 
 ```{r}
-p <- ggplot(dat = dfprov1, aes(x = year, y = prop.students, col = type))
-p1 <- p + facet_grid(~province)
-p2 <- p1 + geom_point() + geom_line()
-p2
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = prop.students, col = type))
+p1 <- p + geom_point() + geom_line()
+p1
 
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
+p1 <- p + geom_point() + geom_line()
+p1
+
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students, col = type))
+p1 <- p + geom_point() + geom_line()
+p1
+
+p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers, col = type))
+p1 <- p + geom_point() + geom_line()
+p1
 ```
 
 The following code tests the distribution of the two variables for urban and rural areas. It demonstrates that student-teacher ratios are normally distributed. To the contrary the proportion of private students is not. Nevertheless, by taking the log, we can generate a distribution for both areas which approximates a normal. The log version will therefore be used for the purpose of regression analysis. 
+
+```{r}
+dfcan2019 <- dfcan1 %>%
+          filter(year == as.Date("2019-05-01")) %>%
+          pivot_wider(names_from = type,
+                      values_from = c(prop.students:sum.teachers)) 
+```
+
 
 ```{r}
 par(mfrow = c(3,4))
@@ -234,7 +263,7 @@ data.frame(summary(sdfprop2$area), set = "prop2>0")
 The following code creates a graph of the relationship of the two variables, as well as its OLS regression with the student-teacher ratio in public schools as the dependent variable and the log of the proportion of private students as the independent variable. 
 
 ```{r, warning = FALSE}
-p <- ggplot(dat = sdf2, aes(y = stratio, x = log(prop1))) + theme_bw() 
+p <- ggplot(dat = dfcan2019, aes(y = stratio, x = log(prop1))) + theme_bw() 
 p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
 p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
