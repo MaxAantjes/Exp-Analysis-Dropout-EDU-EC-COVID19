@@ -24,6 +24,8 @@ library(stringr)
 library(tidyverse)
 library(kableExtra)
 library(RColorBrewer)
+library(ggplot2)
+library(gridExtra)
 ```
 The following code loads a useful function to account for special characters.
 ```{r}
@@ -37,15 +39,9 @@ rep_sp_char <- function(x){
 
 # Context of Data Sets
 ## Data Set 1
-The data used is the AMIE survey conducted by INEC (non-summarised). This annual survey collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/)
+The data used is the AMIE survey conducted by INEC (non-summarised). This annual survey collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/). The data collection period spanned from 2009 to 2019. Data was collected at both the start and end of the academic year. As we are not concerned with drop outs, only the start of the academic year data will be considered in this analysis.
 
-## Data Set 2
-The data used is summarised matriculation data calculated from the AMIE survey conducted by INEC. This is an annual survey which collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/)
-
-These data sets are updated every year, so it possible that links stop working. The relevant data sets (tabulados por sostenimiento) can be downloaded from this website: https://educacion.gob.ec/indice-de-tabulados/.
-
-# Download of Data Sets
-## Data Set 1
+# Download of Data Set
 The following code downloads the data.
 ```{r}
 y2009s <- "https://educacion.gob.ec/wp-content/plugins/download-monitor/download.php?id=10555"
@@ -91,7 +87,6 @@ df <- rbind(dfl1_2, dfl2_1, dfl3_1)
 ```
 
 # Data Cleaning
-## Data Set 1
 The following code selects the columns of interests, translates them and turns them into factors. It should be noted here that column 35 (which is selected) **only** counts students enrolled in primary and secondary education. It also transforms the year variable into a date variable.
 
 ```{r}
@@ -118,27 +113,20 @@ df1 <- df %>%
 ```
 The following code book explains the different variables in detail:
 ```{r, echo = FALSE}
-colnames <- c("name", "area", "type", "canton", "tot.teachers", "estimated.5-19.yo", "education.level")
-explanation <- c("Institution name", "Indicates whether the institution is in a rural or urban area.", "Indicates how the institution is financed", "Ecuadorian canton name.", "Total number of teachers at the institution", "Total number of students at the institution", "The levels of education provided by the institution")
-values <- c("ID as characters", "factor of 2 levels: rural, urban", "factor of 4 levels: public, ...", "factor of 222 levels: LOJA, ...", "numeric", "numeric", "factor of 18 levels, numbers assigned alphabetically")
+colnames <- c("year", "name", "area", "type", "canton", "tot.teachers", "estimated.5-19.yo", "education.level")
+explanation <- c("Indicates the school year (as data pertains to the start of the school year, the date is set to the First of May (roughly the start of the Ecuadorian schoolyear at the coast).", "Institution name", "Indicates whether the institution is in a rural or urban area.", "Indicates how the institution is financed", "Ecuadorian canton name.", "Total number of teachers at the institution", "Total number of students at the institution", "The levels of education provided by the institution")
+values <- c("Date", "ID as characters", "factor of 2 levels: rural, urban", "factor of 4 levels: public, ...", "factor of 222 levels: LOJA, ...", "numeric", "numeric", "factor of 18 levels, numbers assigned alphabetically")
 table <- data.frame(cbind(colnames, explanation, values))
 kable(table, caption = "Code Book data frame DF1")
 ```
-Checkign missing data
-```{r}
-summary(factor(df1$year[is.na(df1$type)]))
-df2 <- df1
-```
 
-## Data Set 2
-
-## Manipulation of the Data
+# Manipulation of the Data
 The following code creates a data frame which calculates the median student-teacher ratio for each canton (rural and urban area). It then creates a data frame which calculates the percentage of students which are enrolled in private schools per canton (rural and urban area). These two variables will be used for OLS regressions. Finally, the two data frames are merged. 
 
 ```{r}
 missing_to_zero <- function(var){return(ifelse(is.na(var), 0, var))}
 
-total <- df2 %>%
+total <- df1 %>%
             filter(tot.students > 10 & tot.teachers > 0) %>%
             group_by(year, type) %>%
             summarise_at(.vars = c("tot.students", "tot.teachers"), .funs = sum) %>%
@@ -147,7 +135,7 @@ total <- df2 %>%
             mutate(province = "total") %>%
             mutate(canton = "total") 
 
-df3 <- rbind(df2, total)
+df2 <- rbind(df1, total)
 
 st_calc <- function(x) {
         z <- x %>%
@@ -158,8 +146,8 @@ st_calc <- function(x) {
                          sum.teachers = sum(tot.teachers))
         return(z)}
 
-dfprov <- st_calc(df3 %>% group_by(year, province, type)) 
-dfcan <- st_calc(df3 %>% group_by(year, canton, type, area))
+dfprov <- st_calc(df2 %>% group_by(year, province, type)) 
+dfcan <- st_calc(df2 %>% group_by(year, canton, type, area))
 
 prop_calc <- function(x, y, q){
         z <- x %>%
@@ -184,9 +172,9 @@ prop_calc <- function(x, y, q){
             ungroup()
         return(z)}
 
-dfprov1 <- prop_calc(x = df3 %>% group_by(year, province, type), 
+dfprov1 <- prop_calc(x = df2 %>% group_by(year, province, type), 
                      y = dfprov, q = c("year", "province", "type"))
-dfcan1 <- prop_calc(x = df3 %>% group_by(year, canton, type, area), 
+dfcan1 <- prop_calc(x = df2 %>% group_by(year, canton, type, area), 
                      y = dfcan, q = c("year", "canton", "type", "area"))
 ```
 The following code book explains the different variables in detail for the ```dfprov1``` data frame:
@@ -208,7 +196,7 @@ kable(table, caption = "Code Book data frame dfcan1")
 
 # Results
 ## What happened to the ST ratio with past fluctuations in enrollment?
-The following code summarises the data from the ```dfprov1``` data frame. Figure 2 demonstrates that the student teacher ratios rose from 2010 to 2014 in public schools, after which they dropped again. Figure 3 demonstrates that this rise in ST ratio mostly arose because of a rise in public students, as well as a small decrease in private school students. The main reason for this rise is that the number of teachers enrolled in public education has turned out to be inelastic to the increase in public student enrolment.
+The following code summarises the data from the ```dfprov1``` data frame. Figure 1 demonstrates that the student teacher ratios rose from 2010 to 2014 in public schools, after which they dropped again. Figure 2 and Figure 3 demonstrate that this rise in ST ratio mostly arose because of a rise in public students, as well as a small decrease in private school students. The main reason for this rise is that the number of teachers enrolled in public education has turned out to be inelastic to the increase in public student enrolment.
 ```{r}
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
 p1 <- p + geom_point() + geom_line()
@@ -216,18 +204,17 @@ p2 <- p1 + theme_bw() + labs(title = "Figure 1: Median Teacher Student Ratio", y
 p2
 
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students/1000000, fill = type))
-p1 <- p + geom_area() + scale_fill_brewer(palette="Pastel1") 
-p2 <- p1 + theme_bw() + labs(title = "Figure 2: Total Students Enrolled (in millions)", y = "")
-p2
+p1 <- p + geom_area() + scale_fill_brewer(palette="Pastel1")
+p2 <- p1 + theme_bw() + labs(title = "Figure 2: Total Students\nEnrolled (in millions)", y = "") 
+q <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers/1000, fill = type))
+q1 <- q + geom_area() + scale_fill_brewer(palette="Pastel1") 
+q2 <- q1 + theme_bw() + labs(title = "Figure 3: Total Teachers\nEnrolled (in thousands)", y = "")
 
-p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers/1000, fill = type))
-p1 <- p + geom_area() + scale_fill_brewer(palette="Pastel1") 
-p2 <- p1 + theme_bw() + labs(title = "Figure 3: Total Teachers Enrolled (in thousands)", y = "")
-p2
+grid.arrange(p2, q2, ncol = 2, nrow =1)
 ```
 
-## How are institutions distributed amongst cantons?
-The following code orders the cantons in terms of the proportion of private isntitutions. It then divides the cantons across 20 quantiles. Finally, it then calculates the average proportion per quantile and graphs it. 
+## How is private institution enrolment distributed amongst cantons?
+The following code orders the cantons in terms of the proportion of students enrolled in private institutions. It then divides the cantons across 10 deciles. Finally, it then calculates the average proportion per decile and graphs it. It demonstrates that private institution enrolment is highly variable amongst cantons. 
 
 ```{r}
 dfcant <- dfcan1 %>%
@@ -249,14 +236,15 @@ p2 <- p1 + labs(y = "Average Proportion Students\nenrolled in Private Education"
                 x = "Ordered Deciles (of cantons)")
 p2
 ```
+
 ## What is the relationship between enrollment proportions and ST ratios in public schools?
 ### Hypotheses
-Based on the exploration of the data, it seems plausible that the number of teachers in public education is inelastic to the number of students. Accordingly, we expect that an increase in private education enrollment will decrease the ST ratio in public schools (and vice versa). Accordingly, the analysis attempts to test the following hypotheses:
+Based on the exploration of the data, it seems plausible that the number of teachers in public education is inelastic to the number of students. Accordingly, we expect that an increase in private education enrollment will decrease the ST ratio in public schools (and vice versa). Accordingly, the analysis attempts to test the following hypotheses:  
 
-*H0_1: The ST ratio in public schools for different proportions of enrolment in public education are equal (as long as > 0% of students are enrolled in public schools).  
-* H0_2: The ST ratio in public schools for different proportions of enrolment in private education are equal (as long as > 0% of students are enrolled in public schools).
+*H0_1: The mean ST ratio in public schools for different proportions of enrolment in public education are equal (as long as > 0% of students are enrolled in public schools).  
+* H0_2: The mean ST ratio in public schools for different proportions of enrolment in private education are equal (as long as > 0% of students are enrolled in public schools).
 
-These hypotheses will be tested through an OLS regression. 
+These hypotheses will be tested through an OLS regression using the 2019 enrollment data.
 
 ### Specification of Variable Quantifiers
 The following code prepares the data frame for further analysis (with a wider data frame the proportions of different types of education can be regressed against the ST ratio of different types of education). 
@@ -272,8 +260,11 @@ dfcan2019 <- dfcan1 %>%
 For an OLS regression, we are looking for independent and dependent variables which are normally distributed. The following code tests the distribution of the two variables (proportion and ST ratio) for urban and rural areas. It demonstrates that student-teacher ratios are normally distributed. To the contrary the proportion of private students is not. Nevertheless, by taking the log, we can generate a distribution for both areas which approximates a normal. Any 0% proportions were removed here (as its log generates a negative Infinite number). This is illustrative for other proportions (the graphs are left out to save space). 
 
 For this reason two decisions are made:  
+
 1. the log version will be used for regression;  
-2. 0% proportion will be removed for regression. This limits the conclusions of the study: the relationship is only tested in places where the 
+2. 0% proportion will be removed for regression. 
+
+This limits the conclusions of the study: the relationship between the ST ratio and a proportion is only tested in places where that proportion exceeds 0%. This means the R squared value does not take into account the variation in the dependent variable in which the independent variable equals 0. It is thus plausibly overestimated. 
 
 ```{r}
 par(mfrow = c(2,3))
@@ -335,7 +326,7 @@ p <- ggplot(dat = dfcan2019 %>% filter(prop.students_private > 0 | prop.students
 p1 <- p + geom_point(alpha = 1/4) + facet_grid(~area)
 p2 <- p1 + geom_smooth(method = "lm", formula = y~x) 
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
-  x = "Proportion of students enrolled\nin private and mixed education (log)", 
+  x = "Proportion of students enrolled\nin private OR mixed education (log)", 
   y = "Median Student-Teacher\nratio in public schools",
   title = "Figure 8: Weak Negative Relationship between Private and\nMixed Education Attendance and ST Ratio in Public Schools", 
   subtitle = "Cantons with mixed AND private education enrolment < 0% removed.",
@@ -345,30 +336,26 @@ p3
 
 As expected, public education enrolment has a positive effect on ST ratio in public schools. However, the relationship is rather weak and shows much variation in cantons with close to 100% school enrolment. Therefore, we cannot plausibly reject the first null-hypothesis.
 
-We will thus focus on the other results. In cantons with private school enrolment, there is a strong relationship between private education enrolment and the ST ratio in public schools. Surprisingly, however, mixed school enrolment (which is semi-private) has a negative relationship on ST ratio in public schools. How is this possible? We will first explore the OLS regression a bit further. The following code calculates relevant statistics for the relationship between private school enrolment and the ST ratio in public schools. 
+We will thus focus on the other results. In cantons with private school enrolment, there is a strong POSITIVE relationship between private education enrolment and the ST ratio in public schools. Surprisingly, however, mixed school enrolment (which is semi-private) has a negative relationship on ST ratio in public schools. How is this possible? We will first explore the OLS regression a bit further. The following code calculates relevant statistics for the relationship between private school enrolment and the ST ratio in public schools. 
 
 ```{r}
 dfcan2019urb <- dfcan2019[dfcan2019$prop.students_private > 0,] %>% filter(area == "urban")
 r <- lm(formula = med.stratio_public ~ log(prop.students_private), data = dfcan2019urb)
 summary(r)$r.squared
 summary(r)$coefficients
-plot(r)
 ```
 
-This means that if an area A's proportion of private students is 100% higher than that of area B (e.g. 5% and 10%), then we expect the ST ratio to be 1 unit higher in area A, or in other words, for there to be 1 more student for every teacher in area B. The R squared value indicates that more than 27% of the variation of ST ratios of cantons **with private institutions can be explained by the OLS model**. The plots indicate that the data is roughly homoscedastic. This suggests OLS regression is appropriate for the data. 
+The results indicate that if an area A's proportion of private students is 100% higher than that of area B (e.g. 5% and 10%), then we expect the ST ratio to be 1 unit higher in area A, or in other words, for there to be 1 more student for every teacher in area B. The R squared value indicates that more than 27% of the variation of ST ratios of cantons **with private institutions can be explained by the OLS model**. The following plots indicate that the data is roughly homoscedastic. This suggests OLS regression is appropriate for the data. At first sight, these results seem sufficient to reject the second null hypothesis. 
 
 ```{r}
-dfcan2019urb <- dfcan2019_2 %>% filter(area == "urban")
-r <- lm(formula = med.stratio_public ~ log(prop.students_private + prop.students_mixed), data = dfcan2019urb)
-summary(r)$r.squared
-summary(r)$coefficients
+par(mfrow = c(2,2))
 plot(r)
 ```
 
-In an isolated scenario these results would be sufficient to reject the second null hypothesis. However, the results in terms of mixed institutions indicate something different might be at play here. One possibility is that ST ratios are simply higher in populated areas (large cities) - which is consistent with the assumption that teacher hiring is inelastic - and that mixed institutions are primarily located in low population areas, whilst private institutions are primarily located in high population areas - larger inequality in incomes or a lesser influence by the church (which runs most mixed institutions) in urban areas might explain this divergence. 
-The following code tests this alternative explanation by regressing the ST Ratio in public schools against the total number of students. It then classifies cantons according to the amount of students enrolled in mixed and private education. It demonstrates that ST ratios are higher in areas with a higher population and that this is where private institutions tend to be located. It also demonstrates that ST ratios are lower in areas with a lower population and that this is where mixed institutions tend to be located. 
+### Alternative Explanation
+However, figure 7 and figure 8 indicate something different might be at play here. When considering also semi-private institutions, the relationship turns negative. One possible explanation for this is that ST ratios could simply be higher in populated areas (large cities) - which is consistent with the assumption that teacher hiring is rather inelastic - and that mixed institutions are primarily located in low population areas, whilst private institutions are primarily located in high population areas. The distribution of these different institution might stem from larger inequality in incomes in urban areas (thus favouring fully private institutions) and a lesser influence by the Catholic church (which runs most mixed institutions).
 
-Accordingly, the positive relationship between private education enrolment and ST ratios is thus plausibly explained by the number of students in areas with high private education enrolment. The second null-hypothesis can thus not be rejected due to this confounding variable. It does highlight an important fact about where educational institutions are located, however, and which types of schools should be of particular concern to the government: private rather than mixed schools. 
+The following code tests this explanation by plotting the median ST Ratio in public schools against the total number of enrolled students per canton (see Figure 9). It then classifies cantons according to the amount of students enrolled in mixed and private education. It demonstrates that ST ratios are higher in areas with a higher population and that this is where the proportion of private institution enrollment is high (red). It also demonstrates that ST ratios are lower in areas with a lower population and that this is where mixed institution enrollment is high (blue).
 
 ```{r}
 test <- dfcan2019 %>%
@@ -378,11 +365,20 @@ test <- dfcan2019 %>%
                                        "PMS < 5% and PPS > 4.9%", classification)) %>%
         filter(classification != "PH")
 
-p <- ggplot(data = test, aes(x = log(sum.students_public), 
+p <- ggplot(data = test, aes(x = log(sum.students_public+sum.students_private+sum.students_mixed+sum.students_municipal), 
                                   y = med.stratio_public, col = classification))
 p1 <- p + geom_point(alpha = 1/4) + theme_bw()
 p2 <- p1 + labs(x = "Total Students in Canton (log)", y = "Median Student-Teacher\nRatio in Public Schools",
                 title = "Figure 9: ST Ratio in Public Schools increases\nwith Total Number of Students per Canton",
-                subtitle = "PMS = Proportion of Students in Mixed Education\nPPS = Proportion of Students in Private Education")
+                subtitle = "PMS = Proportion of Students in Mixed Education\nPPS = Proportion of Students in Private Education",
+  caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
 p2
 ```
+The following plots again demonstrate the relationships between mixed and private enrolment and number of students. 
+```{r}
+par(mfrow = c(1,2))
+plot(test$prop.students_private, log(test$sum.students_public))
+plot(test$prop.students_mixed, log(test$sum.students_public))
+```
+
+Accordingly, the positive relationship between purely private education enrolment and ST ratios is thus plausibly explained by a confounder variable: the number of students. When the two types of private education (pure and mixed) are combined, the expected relationship dissapears (see figure 8). The second null-hypothesis can thus not be rejected. Neverhteless, the data does highlight that certain types of educational institutions are located in areas with higher or lower ST ratios. Government policy can therefore be targeted at specific types of private education to avoid a rise in ST ratios. 
