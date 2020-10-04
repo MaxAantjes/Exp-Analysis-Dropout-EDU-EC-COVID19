@@ -831,7 +831,8 @@ increase in public student enrolment.
 ``` r
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
 p1 <- p + geom_point() + geom_line() + scale_color_brewer(palette="Pastel1")
-p2 <- p1 + theme_bw() + labs(title = "Figure 1: Median Teacher Student Ratio", y = "")
+p2 <- p1 + theme_bw() + labs(title = "Figure 1: Median Teacher Student Ratio", y = "",
+                             caption = "AMIE Data collected by INEC (2009-2019)\nData Summary by Max Aantjes")
 p2
 ```
 
@@ -840,10 +841,12 @@ p2
 ``` r
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.students/1000000, fill = type))
 p1 <- p + geom_area() + scale_fill_brewer(palette="Pastel1")
-p2 <- p1 + theme_bw() + labs(title = "Figure 2: Total Students\nEnrolled (in millions)", y = "") 
+p2 <- p1 + theme_bw() + labs(title = "Figure 2: Total Students\nEnrolled (in millions)", y = "",
+                             caption = "\n") 
 q <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = sum.teachers/1000, fill = type))
 q1 <- q + geom_area() + scale_fill_brewer(palette="Pastel1") 
-q2 <- q1 + theme_bw() + labs(title = "Figure 3: Total Teachers\nEnrolled (in thousands)", y = "")
+q2 <- q1 + theme_bw() + labs(title = "Figure 3: Total Teachers\nEnrolled (in thousands)", y = "",
+                             caption = "AMIE Data collected by INEC (2009-2019)\nData Summary by Max Aantjes")
 
 grid.arrange(p2, q2, ncol = 2, nrow =1)
 ```
@@ -875,7 +878,8 @@ p <- ggplot(data = dfcant1, aes(x = quantile, y = private))
 p1 <- p + geom_line(col = "#c1e0c2") + geom_point(col = "#c1e0c2") + theme_bw()
 p2 <- p1 + labs(y = "Average Proportion Students\nenrolled in Private Education",
                 title = "Figure 4: Highly Unequal Distribution of Private Institutions",
-                x = "Ordered Deciles (of cantons)")
+                x = "Ordered Deciles (of cantons)",
+                caption = "AMIE Data collected by INEC (2009)\nData Summary by Max Aantjes")
 p2
 ```
 
