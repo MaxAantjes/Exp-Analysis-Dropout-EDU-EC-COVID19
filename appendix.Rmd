@@ -238,14 +238,15 @@ dfcant <- dfcan1 %>%
 dfcant1 <- dfcant %>%
         select(canton, private) %>%
         arrange(private) %>%
-        mutate(quantile = ntile(private, 20)) %>%
+        mutate(quantile = ntile(private, 10)) %>%
         group_by(quantile) %>%
         summarise(private = mean(private))
 
 p <- ggplot(data = dfcant1, aes(x = quantile, y = private))
 p1 <- p + geom_line(col = "#c1e0c2") + geom_point(col = "#c1e0c2") + theme_bw()
 p2 <- p1 + labs(y = "Average Proportion Students\nenrolled in Private Education",
-                title = "Figure 4: Highly Unequal Distribution of Private Institutions")
+                title = "Figure 4: Highly Unequal Distribution of Private Institutions",
+                x = "Ordered Deciles (of cantons)")
 p2
 ```
 ## What is the relationship between enrollment proportions and ST ratios in public schools?
