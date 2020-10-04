@@ -9,7 +9,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-**At the end of June, the IADB reported that public education enrolment in the Ecuadorian coastal provinces had increased with 6.5% (Olson, 2020). Last week, Ecuavisa, a major Ecuadorian Television Network reported that over 150 million students nationwide have transitioned from private to public institutions (Ecuavisa, 2020).**
+**At the end of June, the IADB reported that public education enrolment in the Ecuadorian coastal provinces had increased with 6.5% (Olson, 2020). Last week, Ecuavisa, a major Ecuadorian Television Network reported that over 150 thousand students nationwide have transitioned from private to public institutions (Ecuavisa, 2020).**
 
 This apparent fall in private education enrolment was expected. The main driver is no doubt the continued contraction of Latin American economic activity. In Ecuador, unemployment rose to 13,3% in June 2020, compared to 3,8% in December 2019 (INEC, 2020, p.15). Parents who can no longer afford private education have strong incentives to shift their child to public education, which is free. It is for this reason that 40% of Mexico's private institutions are expected to go bankrupt (Sanches, 2020). The Ecuadorian government has attempted to avoid such a transition in Ecuador by reducing fees of private institutions by 25% for parents who lost their job (Olson, 2020). However, this has apparently failed to stop the widespread transition.
  

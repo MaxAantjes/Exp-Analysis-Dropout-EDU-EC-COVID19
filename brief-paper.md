@@ -7,7 +7,7 @@ Max Aantjes
 **At the end of June, the IADB reported that public education enrolment
 in the Ecuadorian coastal provinces had increased with 6.5% (Olson,
 2020). Last week, Ecuavisa, a major Ecuadorian Television Network
-reported that over 150 million students nationwide have transitioned
+reported that over 150 thousand students nationwide have transitioned
 from private to public institutions (Ecuavisa, 2020).**
 
 This apparent fall in private education enrolment was expected. The main
