@@ -111,13 +111,15 @@ Figure 6 regresses the ST ratio in public schools against the log of the
 private school proportion per canton. The data is also segregated by
 rural and urban area. In urban cantons with positive private school
 enrolment, there is a strong positive relationship (see Figure 6). The
-coefficient equals 1.982377. This means that if a canton A’s proportion
-of private students is 100% higher than that of canton B (e.g. 5% and
-10%), then we expect the ST ratio to be 1 unit higher in canton A, or in
-other words, for there to be 1 more student for every teacher in canton
-B. *Prima facie* these results are extremely surprising: an increase in
-the ammount of students enrolled in privated education is associated
-with higher public school ST ratios.
+coefficient equals 1.982377.
+
+This means that if a canton A’s proportion of private students is 100%
+higher than that of canton B (e.g. 5% and 10%), then we expect the ST
+ratio to be 1 unit higher in canton A, or in other words, for there to
+be 1 more student for every teacher in canton A. *Prima facie* these
+results are extremely surprising: an increase in the amount of students
+enrolled in privated education is associated with higher public school
+ST ratios.
 
 ![Figure 6](Figure_6.png)
 

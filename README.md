@@ -117,7 +117,7 @@ coefficient equals 1.982377. This means that if a canton A’s proportion
 of private students is 100% higher than that of canton B (e.g. 5% and
 10%), then we expect the ST ratio to be 1 unit higher in canton A, or in
 other words, for there to be 1 more student for every teacher in canton
-B. The R squared value equals 0.27, meaning 27% of the variation of ST
+A. The R squared value equals 0.27, meaning 27% of the variation of ST
 ratios (of cantons with positive private education enrolment) can be
 explained by the OLS model. Furthermore, OLS appears to be an
 appropriate fit, as the residuals are homoscedastic.
