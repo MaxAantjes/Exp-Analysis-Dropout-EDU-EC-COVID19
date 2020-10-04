@@ -125,9 +125,9 @@ However, the positive relationship disappears (and becomes slightly
 negative) if the same regression is performed on the sum of the
 proportion of students in private **and mixed** education (see Figure
 8). This is also surprising, because we would expect semi-private
-education enrolment to have the same effect as purely-private education
-enrolment: they should both reduce the number of students in the public
-school system. So what is going on here?
+education enrolment to have the same effect as entirely-private
+education enrolment: they should both reduce the number of students in
+the public school system. So what is going on here?
 
 ![Figure 8](Figure_8.png)
 
@@ -154,22 +154,20 @@ the type of educational institutions that are prevalent in the area.
 ### What do the answers to these questions mean for policymaking?
 
 There are at least two policy conclusions that can be drawn from the
-results:
+results. First of all, the number of teachers in public education tend
+to be unresponsive to the demand of teachers. Given the increase of
+public school enrolment in Ecuador, this means government should
+introduce new policies to encourage public teacher hiring.
 
-1.  The number of teachers in public education tend to be unresponsive
-    to the demand of teachers. Given the increase of public school
-    enrolment in Ecuador, this means government should introduce new
-    policies to encourage public teacher hiring.
-
-2.  Policy makers should be aware of the systematic concentration of
-    different types of educational institutions in Ecuador. Purely
-    private institutions (instituciones fiscales) tend to concentrate in
-    large cities, where ST ratios also tend to be high. Semi-private
-    institutions (instituciones fiscomisionales) tend to concentrate in
-    lesser populated areas, where ST ratios tend to be low. To avoid a
-    rise in ST ratios, government policy should thus focus on reducing
-    the transition to public institutions from **purely** private
-    institutions.
+Secondly, policy makers should be aware of the systematic concentration
+of different types of educational institutions in Ecuador. Purely
+private institutions (instituciones fiscales) tend to concentrate in
+large cities, where ST ratios also tend to be high. Semi-private
+institutions (instituciones fiscomisionales) tend to concentrate in
+lesser populated areas, where ST ratios tend to be low. To avoid a rise
+in ST ratios, government policy should thus focus on reducing the
+transition to public institutions from **entirely** private
+institutions.
 
 These policy recommendations are of course limited. An essential
 limitation is that ST ratios tends to be necessary but not sufficient
