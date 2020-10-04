@@ -38,7 +38,6 @@ rep_sp_char <- function(x){
 ```
 
 # Context of Data Sets
-## Data Set 1
 The data used is the AMIE survey conducted by INEC (non-summarised). This annual survey collects census data on the number of students and teachers at each Ecuadorian primary and secondary institution. Code books and methodology documents are available in this [online repository](https://educacion.gob.ec/amie/). The data collection period spanned from 2009 to 2019. Data was collected at both the start and end of the academic year. As we are not concerned with drop outs, only the start of the academic year data will be considered in this analysis.
 
 # Download of Data Set
@@ -199,7 +198,7 @@ kable(table, caption = "Code Book data frame dfcan1")
 The following code summarises the data from the ```dfprov1``` data frame. Figure 1 demonstrates that the student teacher ratios rose from 2010 to 2014 in public schools, after which they dropped again. Figure 2 and Figure 3 demonstrate that this rise in ST ratio mostly arose because of a rise in public students, as well as a small decrease in private school students. The main reason for this rise is that the number of teachers enrolled in public education has turned out to be inelastic to the increase in public student enrolment.
 ```{r}
 p <- ggplot(dat = dfprov1 %>% filter(province == "total"), aes(x = year, y = med.stratio, col = type))
-p1 <- p + geom_point() + geom_line()
+p1 <- p + geom_point() + geom_line() + scale_color_brewer(palette="Pastel1")
 p2 <- p1 + theme_bw() + labs(title = "Figure 1: Median Teacher Student Ratio", y = "")
 p2
 
@@ -239,12 +238,7 @@ p2
 
 ## What is the relationship between enrollment proportions and ST ratios in public schools?
 ### Hypotheses
-Based on the exploration of the data, it seems plausible that the number of teachers in public education is inelastic to the number of students. Accordingly, we expect that an increase in private education enrollment will decrease the ST ratio in public schools (and vice versa). Accordingly, the analysis attempts to test the following hypotheses:  
-
-*H0_1: The mean ST ratio in public schools for different proportions of enrolment in public education are equal (as long as > 0% of students are enrolled in public schools).  
-* H0_2: The mean ST ratio in public schools for different proportions of enrolment in private education are equal (as long as > 0% of students are enrolled in public schools).
-
-These hypotheses will be tested through an OLS regression using the 2019 enrollment data.
+Based on the exploration of the data, it seems plausible that the number of teachers in public education is inelastic to the number of students. Accordingly, we expect that an increase in private education enrollment will decrease the ST ratio in public schools (and vice versa). Accordingly, the analysis attempts to explore the relationship between private education enrollment and ST ratio in public education is explored. As we are dealing with census data (no time-regression), null-hypotheses are not relevant here.
 
 ### Specification of Variable Quantifiers
 The following code prepares the data frame for further analysis (with a wider data frame the proportions of different types of education can be regressed against the ST ratio of different types of education). 
@@ -334,9 +328,9 @@ p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
 p3
 ```
 
-As expected, public education enrolment has a positive effect on ST ratio in public schools. However, the relationship is rather weak and shows much variation in cantons with close to 100% school enrolment. Therefore, we cannot plausibly reject the first null-hypothesis.
+As expected, public education enrolment has a positive effect on ST ratio in public schools. However, the relationship is rather weak and shows much variation in cantons with close to 100% school enrolment. Therefore, we will thus focus on the other results. 
 
-We will thus focus on the other results. In cantons with private school enrolment, there is a strong POSITIVE relationship between private education enrolment and the ST ratio in public schools. Surprisingly, however, mixed school enrolment (which is semi-private) has a negative relationship on ST ratio in public schools. How is this possible? We will first explore the OLS regression a bit further. The following code calculates relevant statistics for the relationship between private school enrolment and the ST ratio in public schools. 
+In cantons with private school enrolment, there is a strong positive relationship between private education enrolment and the ST ratio in public schools. Surprisingly, however, mixed school enrolment (which is semi-private) has a negative relationship on ST ratio in public schools. How is this possible? We will first explore the OLS regression a bit further. The following code calculates relevant statistics for the relationship between private school enrolment and the ST ratio in public schools. 
 
 ```{r}
 dfcan2019urb <- dfcan2019[dfcan2019$prop.students_private > 0,] %>% filter(area == "urban")
@@ -345,7 +339,7 @@ summary(r)$r.squared
 summary(r)$coefficients
 ```
 
-The results indicate that if an area A's proportion of private students is 100% higher than that of area B (e.g. 5% and 10%), then we expect the ST ratio to be 1 unit higher in area A, or in other words, for there to be 1 more student for every teacher in area B. The R squared value indicates that more than 27% of the variation of ST ratios of cantons **with private institutions can be explained by the OLS model**. The following plots indicate that the data is roughly homoscedastic. This suggests OLS regression is appropriate for the data. At first sight, these results seem sufficient to reject the second null hypothesis. 
+The results indicate that if an area A's proportion of private students is 100% higher than that of area B (e.g. 5% and 10%), then we expect the ST ratio to be 1 unit higher in area A, or in other words, for there to be 1 more student for every teacher in area B. The R squared value indicates that more than 27% of the variation of ST ratios of cantons **with private institutions can be explained by the OLS model**. The following plots indicate that the data is roughly homoscedastic. This suggests OLS regression is appropriate for the data. At first sight, these results seem sufficient to prove relationship between private education enrollment and ST ratio in public education.
 
 ```{r}
 par(mfrow = c(2,2))
@@ -381,4 +375,4 @@ plot(test$prop.students_private, log(test$sum.students_public))
 plot(test$prop.students_mixed, log(test$sum.students_public))
 ```
 
-Accordingly, the positive relationship between purely private education enrolment and ST ratios is thus plausibly explained by a confounder variable: the number of students. When the two types of private education (pure and mixed) are combined, the expected relationship dissapears (see figure 8). The second null-hypothesis can thus not be rejected. Neverhteless, the data does highlight that certain types of educational institutions are located in areas with higher or lower ST ratios. Government policy can therefore be targeted at specific types of private education to avoid a rise in ST ratios. 
+Accordingly, the positive relationship between purely private education enrolment and ST ratios is thus plausibly explained by a confounder variable: the number of students. When the two types of private education (pure and mixed) are combined, the expected relationship dissapears (see figure 8). Neverhteless, the data does highlight that certain types of educational institutions are located in areas with higher or lower ST ratios. Government policy can therefore be targeted at specific types of private education to avoid a rise in ST ratios. 
