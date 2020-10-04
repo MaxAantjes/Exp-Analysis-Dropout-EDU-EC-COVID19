@@ -226,6 +226,28 @@ p2 <- p1 + theme_bw() + labs(title = "Figure 3: Total Teachers Enrolled (in thou
 p2
 ```
 
+## How are institutions distributed amongst cantons?
+The following code orders the cantons in terms of the proportion of private isntitutions. It then divides the cantons across 20 quantiles. Finally, it then calculates the average proportion per quantile and graphs it. 
+
+```{r}
+dfcant <- dfcan1 %>%
+        filter(year == as.Date("2019-05-01"), area == "urban") %>%
+        select(canton, prop.students, type) %>%
+        pivot_wider(values_from = prop.students, names_from = type)
+
+dfcant1 <- dfcant %>%
+        select(canton, private) %>%
+        arrange(private) %>%
+        mutate(quantile = ntile(private, 20)) %>%
+        group_by(quantile) %>%
+        summarise(private = mean(private))
+
+p <- ggplot(data = dfcant1, aes(x = quantile, y = private))
+p1 <- p + geom_line(col = "#c1e0c2") + geom_point(col = "#c1e0c2") + theme_bw()
+p2 <- p1 + labs(y = "Average Proportion Students\nenrolled in Private Education",
+                title = "Figure 4: Highly Unequal Distribution of Private Institutions")
+p2
+```
 ## What is the relationship between enrollment proportions and ST ratios in public schools?
 ### Hypotheses
 Based on the exploration of the data, it seems plausible that the number of teachers in public education is inelastic to the number of students. Accordingly, we expect that an increase in private education enrollment will decrease the ST ratio in public schools (and vice versa). Accordingly, the analysis attempts to test the following hypotheses:
@@ -281,7 +303,7 @@ p2 <- p1 + geom_smooth(method = "lm", formula = y~x)
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
   x = "Proportion of students enrolled\nin public education (log)", 
   y = "Median Student-Teacher\nratio in public schools",
-  title = "Figure 4: Weak Positive Relationship between Public Education\nAttendance and ST Ratio in Public Schools",
+  title = "Figure 5: Weak Positive Relationship between Public Education\nAttendance and ST Ratio in Public Schools",
   subtitle = "Cantons with public education enrolment < 0% removed.",
   caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
 p3
@@ -292,7 +314,7 @@ p2 <- p1 + geom_smooth(method = "lm", formula = y~x)
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
   x = "Proportion of students enrolled\nin private education (log)", 
   y = "Median Student-Teacher\nratio in public schools",
-  title = "Figure 5: Strong Positive Relationship between Private Education\nAttendance and ST Ratio in Public Schools",
+  title = "Figure 6: Strong Positive Relationship between Private Education\nAttendance and ST Ratio in Public Schools",
   subtitle = "Cantons with pprivate education enrolment < 0% removed.", 
   caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
 p3
@@ -303,7 +325,7 @@ p2 <- p1 + geom_smooth(method = "lm", formula = y~x)
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
   x = "Proportion of students enrolled\nin mixed education (log)", 
   y = "Median Student-Teacher\nratio in public schools",
-  title = "Figure 6: Negative Relationship between Mixed Education\nAttendance and ST Ratio in Public Schools",
+  title = "Figure 7: Negative Relationship between Mixed Education\nAttendance and ST Ratio in Public Schools",
   subtitle = "Cantons with mixed education enrolment < 0% removed.", 
   caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
 p3
@@ -314,7 +336,7 @@ p2 <- p1 + geom_smooth(method = "lm", formula = y~x)
 p3 <- p2 + theme(axis.text.x = element_text(angle = 90)) + labs(
   x = "Proportion of students enrolled\nin private and mixed education (log)", 
   y = "Median Student-Teacher\nratio in public schools",
-  title = "Figure 7: Weak Negative Relationship between Private and\nMixed Education Attendance and ST Ratio in Public Schools", 
+  title = "Figure 8: Weak Negative Relationship between Private and\nMixed Education Attendance and ST Ratio in Public Schools", 
   subtitle = "Cantons with mixed AND private education enrolment < 0% removed.",
   caption = "AMIE Data collected by INEC (2019)\nData Summary by Max Aantjes")
 p3
@@ -359,7 +381,7 @@ p <- ggplot(data = test, aes(x = log(sum.students_public),
                                   y = med.stratio_public, col = classification))
 p1 <- p + geom_point(alpha = 1/4) + theme_bw()
 p2 <- p1 + labs(x = "Total Students in Canton (log)", y = "Median Student-Teacher\nRatio in Public Schools",
-                title = "Figure 8: ST Ratio in Public Schools increases\nwith Total Number of Students per Canton",
+                title = "Figure 9: ST Ratio in Public Schools increases\nwith Total Number of Students per Canton",
                 subtitle = "PMS = Proportion of Students in Mixed Education\nPPS = Proportion of Students in Private Education")
 p2
 ```
